@@ -13,7 +13,9 @@ Client::~client() {}
 
 bool Client::uploadFile(std:: ) {
 
-                    
+                conection();
+                upload();
+
 }
 bool Client::download() {
 

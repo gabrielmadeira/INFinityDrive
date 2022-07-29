@@ -6,10 +6,21 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include "File.hpp"
+#include "Conection.hpp"
 
 #define PORT 4000
 
-int main(int argc, char *argv[])
+
+
+bool upload(FILE *file){
+
+
+
+
+}
+
+bool conection(int argc, char *argv[])
 {
   int sockfd, n;
   struct sockaddr_in serv_addr;
