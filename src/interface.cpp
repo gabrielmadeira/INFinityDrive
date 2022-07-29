@@ -1,12 +1,11 @@
 #include <iostream>
 #include <unistd.h>
 #include <regex>
-#include <thread>
 #include "client.hpp"
 
 using namespace std;
 
-regex upl("(upload )([a-zA-Z_/]+)"), dow("(download )([a-zA-Z_/]+)"), del("(delete )([a-zA-Z_/]+)"), lsr("(list server)"), lcl("(list client)"), gsd("(get sync_dir)"), ext("(exit)");
+regex upl("upload ([a-zA-Z_/\\.]+)"), dow("download ([a-zA-Z_/\\.]+)"), del("delete ([a-zA-Z_/\\.]+)"), lsr("list serverlist"), lcl("list client"), gsd("get sync_dir"), ext("exit");
 
 int main(int argc, char* argv[])
 {
@@ -14,19 +13,22 @@ int main(int argc, char* argv[])
     string username = argv[1], srvrAdd = argv[2];
     int srvrPort = stoi(argv[2]);
 
-    if(client::isUserSubscribed(username, gethostid()) == false) client::createAccount(username, gethostid());
+    //if(client::isUserSubscribed(username, gethostid()) == false) client::createAccount(username, gethostid());
 
     string cmdline;
     smatch cmdarg;
+    //
+    //create object client 
+    Client newClient;
+    //
     while(getline(cin, cmdline))
     {
-        thread thHelper;
-        if(regex_match(cmdline, cmdarg, upl)) { string filename = cmdarg[1]; thHelper = thread(&client::uplodFile, ref(filename));    thHelper.detach(); }
-        if(regex_match(cmdline, cmdarg, dow)) { string filename = cmdarg[1]; thHelper = thread(&client::downloadFile, ref(filename)); thHelper.detach(); }
-        if(regex_match(cmdline, cmdarg, del)) { string filename = cmdarg[1]; thHelper = thread(&client::deleteFile, ref(filename));   thHelper.detach(); }
-        if(regex_match(cmdline, cmdarg, lsr)) {                              thHelper = thread(&client::listServer);                  thHelper.detach(); }
-        if(regex_match(cmdline, cmdarg, lcl)) {                              thHelper = thread(&client::listClient);                  thHelper.detach(); }
-        if(regex_match(cmdline, cmdarg, gsd)) {                              thHelper = thread(&client::getSyncDir);                  thHelper.detach(); }
+        if(regex_match(cmdline, cmdarg, upl)) { cout <<"UPLOAD FOR "     << cmdarg[1];  newClient.upload(cmdarg[1])}
+        if(regex_match(cmdline, cmdarg, dow)) { cout <<"DOWNLOAD FOR "   << cmdarg[1]; }
+        if(regex_match(cmdline, cmdarg, del)) { cout <<"DEL FOR "        << cmdarg[1]; }
+        if(regex_match(cmdline, cmdarg, lsr)) { cout <<"LIST_SERVER FOR "<< cmdarg[1]; }
+        if(regex_match(cmdline, cmdarg, lcl)) { cout <<"LIST_CLIENT FOR "<< cmdarg[1]; }  
+        if(regex_match(cmdline, cmdarg, gsd)) { cout <<"SYNC FOR "       << cmdarg[1]; }
         if(regex_match(cmdline, cmdarg, ext)) exit(0);
     }
 

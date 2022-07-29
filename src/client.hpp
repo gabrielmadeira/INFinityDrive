@@ -1,6 +1,16 @@
 #pragma once
-namespace client 
-{
+#include <string>
+using namespace std;
+
+class Client {
+    public:
+
+        string name;
+        char * cmdarg;
+        long hostid;
+        /* datas */
+
+
     bool isUserSubscribed(std::string username, long hostid);
     void createAccount(std::string username, long hostid);
     bool uplodFile(std::string & filepath);
@@ -9,4 +19,5 @@ namespace client
     bool listServer();
     bool listClient();
     bool getSyncDir();
-}
+
+};
