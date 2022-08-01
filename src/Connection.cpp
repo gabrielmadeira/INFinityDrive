@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include "File.hpp"
-#include "Conection.hpp"
+#include "Connection.hpp"
 
 #define PORT 4000
 
