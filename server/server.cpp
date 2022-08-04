@@ -1,76 +1,149 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
+// std
+#include <bits/stdc++.h>
+
+// inet_addr
+#include <arpa/inet.h>
+
+// For threading, link with lpthread
+#include <pthread.h>
+#include <semaphore.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
+#include <unistd.h>
 
-#define PORT 4000
+using namespace std;
 
-class Server : public CommunicationModule, public SyncronizationModule, public FileManagementModule
+class User
 {
-private:
-    // Hash hashTable
-    // Queue fileQueue
-    // LinkedList metaData[][], data[][] <--- pode ser a mesma coisa
-    //  vector<vector<>>
+public:
+    struct userConnectionData
+    {
+        int socket;
+        char username[256];
+        pthread_t thread;
+        User *ref;
+    };
+    unordered_map<int, userConnectionData> userConnectionsHash;
+    char username[256];
+    User()
+    {
+        // TODO: semaforo
+        // TODO: files vector
+    }
 
-    int sockfd, newsockfd, n;
-    struct sockaddr_in serv_addr, cli_addr;
+    void newUserConnection(int socket)
+    {
+        this->userConnectionsHash[socket] = {};
+        this->userConnectionsHash[socket].socket = socket;
+        strcpy(this->userConnectionsHash[socket].username, this->username);
+        this->userConnectionsHash[socket].ref = this;
+
+        if (pthread_create(&(this->userConnectionsHash[socket].thread), NULL,
+                           this->userConnectionLoop, &(this->userConnectionsHash[socket])) != 0)
+            printf("Failed to create thread\n");
+    }
+
+    void test()
+    {
+        // inicio SC
+        // mexe nos arquivos
+        // fim SC
+        cout << "test working \n";
+    }
+
+    static void *userConnectionLoop(void *param)
+    {
+        // TODO: destruir UserConnection ao desconectar ou ocorrer erro
+
+        userConnectionData data = *(userConnectionData *)param;
+
+        char buffer[256];
+        int n;
+        while (1)
+        {
+            bzero(buffer, 256);
+
+            n = read(data.socket, buffer, 256);
+            if (n < 0)
+            {
+                printf("%d ERROR reading from socket\n", data.socket);
+                break;
+            }
+            if (n == 0)
+            {
+                printf("%d Disconnected\n", data.socket);
+                break;
+            }
+
+            // TODO: parser comandos
+            printf("%d %s CMD received: %s", data.socket, data.username, buffer);
+
+            // (*data.ref).test();
+
+            char up[256] = "upload";
+            if (strcmp(buffer, up) == 0)
+            {
+                printf("UPLOAD!\n");
+            }
+        }
+        return nullptr;
+    }
+};
+
+class Server
+{
+public:
+    unordered_map<string, User> usersHash;
+    // TODO: recuperar usuários existentes do disco
+
+    int serverSocket, newSocket;
+    struct sockaddr_in serverAddr;
+    struct sockaddr_storage serverStorage;
+
+    socklen_t addr_size;
     Server()
     {
+        serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+        serverAddr.sin_addr.s_addr = INADDR_ANY;
+        serverAddr.sin_family = AF_INET;
+        serverAddr.sin_port = htons(4000);
 
-        // Initialize DB Structure
+        bind(serverSocket,
+             (struct sockaddr *)&serverAddr,
+             sizeof(serverAddr));
 
-        // hashTable = new Hash();
-        // queue = new Queue();
+        addr_size = sizeof(serverStorage);
 
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-            printf("ERROR opening socket");
-
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_port = htons(PORT);
-        serv_addr.sin_addr.s_addr = INADDR_ANY;
-        bzero(&(serv_addr.sin_zero), 8);
-
-        if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-            printf("ERROR on binding");
+        if (listen(serverSocket, 50) == 0)
+            printf("Listening\n");
+        else
+            printf("Error\n");
     }
 
-    static void serverConnection()
+    void serverLoop()
     {
-        listen(sockfd, 5);
+        while (1)
+        {
+            newSocket = accept(serverSocket,
+                               (struct sockaddr *)&serverStorage,
+                               &addr_size);
 
-        clilen = sizeof(struct sockaddr_in);
-        if ((newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen)) == -1)
-            printf("ERROR on accept");
+            char user[256];
+            read(newSocket, user, 256);
 
-        // ------> FORK
-        // Thread principal -> serverLoop()
-        // Thread conexão -> novo PC/Usuário
+            if (!usersHash.count(user))
+            {
+                usersHash[user] = User();
+                strcpy(usersHash[user].username, user);
+            }
+            cout << "Connection #" << newSocket << " from user " << user << "\n";
+            usersHash[user].newUserConnection(newSocket);
+        }
     }
+};
 
-    static void pcLoop()
-    {
-        // SYNC
-        // LOOP Waiting for CMD
-    }
-
-    // void accessStructure () PROTEGIDA
-
-    // void CMD1(user, etc)
-
-    // void CMD2(user, etc)
-
-    // void CMD3(user, etc)
-
-    // void sync()
-}
-
-int
-main(int argc, char *argv[])
+int main()
 {
-
+    Server server;
+    server.serverLoop();
     return 0;
 }
