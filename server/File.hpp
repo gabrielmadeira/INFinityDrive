@@ -4,17 +4,16 @@ using namespace std;
 class File {
     public:
         string name;
-        char * data;
-        int length;
+        string data;
         /* Metadata */
 
-        //Modification time
+        // Modification time
         time_t mod_time;
 
-        //Access time
+        // Access time
         time_t acc_time;
         
-        //Change or Creation time
+        // Change or Creation time
         time_t chg_time;
 
         File();

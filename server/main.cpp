@@ -1,6 +1,9 @@
-#include "FileManagementModule.hpp"
+//#include "FileManagementModule.hpp"
+#include "../client/SyncDir.hpp"
 using namespace std;
 #include <iostream>
+#include <chrono>
+#include <thread>
 //#include <cstring>
 //#include <sstream>
 //#include <ctime>
@@ -8,6 +11,29 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {   
+    SyncDir syncdir = SyncDir("../client/sync_dir");
+
+    while(true)
+    {
+        vector<pair<string,int>> diff = syncdir.sync();
+
+        for(pair<string,int> file : diff)
+        {
+            switch(file.second) {
+                case MODIFIED:
+                    cout << "File " << file.first << " was modified" << endl;
+                    break;
+                case DELETED:
+                    cout << "File " << file.first << " was deleted" << endl;
+                    break;
+                case CREATED:
+                    cout << "File " << file.first << " was created" << endl;
+                    break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        }
+    }
+    /*
     string clientName = "user1";
     FileManagementModule fmm;
     fmm.loadClientFiles(clientName); //Loads user1 data to memory
@@ -37,6 +63,6 @@ int main(int argc, char *argv[])
 
     fmm.addClientFiles(clientName,newFiles); // Adds the 2 new files to user1 current files
     fmm.saveClientFiles(clientName); // Saves all user1's files to the disk
-
+    */
     return 0;
 }

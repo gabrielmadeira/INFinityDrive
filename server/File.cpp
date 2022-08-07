@@ -16,51 +16,41 @@
 #endif
 
 File::File() {}
-
-File::File(string filePath) {read(filePath);}
-
-File::~File() {delete this->data;}
+File::File(string filePath) { read(filePath); }
+File::~File()               { data.clear();   }
 
 void File::read(string filePath) {
-    ifstream in(filePath, ios::ate | ios::binary);
+    ifstream in(filePath, ios::ate | ios::binary);                                  // open output file
     if(in)
     {
-        this->length = in.tellg();
-        this->data = new char[this->length];
-        in.seekg(0, ios::beg);
-        in.read(this->data, this->length);
-        in.close();
+        data.resize(in.tellg());
+        in.seekg(0, ios::beg);                          
+        data.assign(istreambuf_iterator<char>(in), istreambuf_iterator<char>());    // write filestream into buffer 
+        in.close();                                                                 // close file handle
 
         updateMetadata(filePath);
     }
-    else
-    {
-        throw runtime_error(string("Error: ") + strerror(errno));
-    }
+    else throw runtime_error(string("Error: ") + strerror(errno));
 }
+
 void File::write(string filePath) {
-    ofstream out(filePath, ios::out | ios::binary);      // open output file
+    ofstream out(filePath, ios::out | ios::binary);                                 // open output file
     if(out)
     {
-        out.write(this->data, this->length);       // write the whole buffer into a file
-        out.close();                  // close file handle
+        out << data;                                                                // write the buffer into file 
+        out.close();                                                                // close file handle
     }
-    else 
-    {
-        throw runtime_error(string("Error: ") + strerror(errno));
-    }
+    else throw runtime_error(string("Error: ") + strerror(errno));
 }
+
 void File::updateMetadata(string filePath) {
     struct stat result;
     if(stat(filePath.c_str(), &result)==0)
     {
-        this->name = filePath.substr(filePath.find_last_of("/\\") + 1);
-        this->mod_time = result.st_mtime;
-        this->acc_time = result.st_atime;
-        this->chg_time = result.st_ctime;
+        name = filePath.substr(filePath.find_last_of("/\\") + 1);
+        mod_time = result.st_mtime;
+        acc_time = result.st_atime;
+        chg_time = result.st_ctime;
     }
-    else
-    {
-        throw runtime_error(string("Error: No such file or directory"));
-    }
+    else throw runtime_error(string("Error: No such file or directory"));
 }
