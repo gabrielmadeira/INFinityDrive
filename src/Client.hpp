@@ -8,7 +8,7 @@ using namespace std;
 class Client {
     public:
         string name;
-        char hostname[HOST_NAME_MAX];
+        char device[HOST_NAME_MAX];
         int socketfd;
 
     Client(string username, string srvrAdd, int srvrPort);
@@ -18,5 +18,5 @@ class Client {
     void listServer();
     void listClient();
     void getSyncDir();
-
+    void disconnect() { close(socketfd); }
 };

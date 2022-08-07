@@ -1,76 +1,109 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <netdb.h>
-#include "File.hpp"
+#include <string.h>
+#include <sys/socket.h>
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <sstream>
 #include "Connection.hpp"
 
 #define PORT 4000
 
-
-
-bool upload(FILE *file){
-
-
-
-
+string serializeFile(File & file)
+{
+  stringstream filebuffer;
+  filebuffer << file.data << '|' << file.acc_time 
+             << '|' << file.chg_time << '|' 
+             << file.mod_time << '|';
+  return filebuffer.str();
 }
 
-bool conection(int argc, char *argv[])
+File* deserializeFile(string message)
 {
-  int sockfd, n;
+  File* file;
+  stringstream mstream(message);
+  getline(mstream, file->name, '|');
+  mstream >> file->acc_time;
+  mstream.seekg(ios::cur+1); 
+  mstream >> file->chg_time;
+  mstream.seekg(ios::cur+1); 
+  mstream >> file->mod_time;
+  return file;
+}
+
+int connectClient(string name, string srvrAdd, int srvrPort)
+{
   struct sockaddr_in serv_addr;
   struct hostent *server;
+  int socketfd, res;
 
-  char buffer[256];
-  if (argc < 2)
-  {
-    fprintf(stderr, "usage %s hostname\n", argv[0]);
-    exit(0);
-  }
-
-  server = gethostbyname(argv[1]);
-  if (server == NULL)
-  {
-    fprintf(stderr, "ERROR, no such host\n");
-    exit(0);
-  }
-
-  if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-    printf("ERROR opening socket\n");
+  server = gethostbyname(srvrAdd.c_str());
+  if (!server) return -1;
+  
+  socketfd = socket(AF_INET, SOCK_STREAM, 0);
+  if((socketfd) == -1) return -1;
 
   serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(PORT);
+  serv_addr.sin_port = htons(srvrPort);
   serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
   bzero(&(serv_addr.sin_zero), 8);
 
-  if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-    printf("ERROR connecting\n");
+  res = connect(socketfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  if (res == -1) return -1;
 
-  while (1)
+  return socketfd;
+}
+
+bool upload(int socketfd, File & file)
+{
+  string msg = file.name + '|';
+  if(!sendProtocol(socketfd, msg, UPLD))                 return false;
+  if(!sendProtocol(socketfd, serializeFile(file), DATA)) return false;
+  return true;
+}
+
+File* download(int socketfd, string filename)
+{
+  Protocol buffer;
+  tuple<PROTOCOL_TYPE, string> filetuple;
+  File* file;
+  string msg = filename + '|';
+  if(!sendProtocol(socketfd, msg, DWNL)) return NULL;
+  filetuple = receiveProtocol(socketfd);
+  file = deserializeFile(get<1>(filetuple));
+  file->name = filename;
+  return file;
+}
+
+bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
+{
+  Protocol buffer;
+  int msgsize = message.size() + (PAYLOAD_SIZE - message.size() % PAYLOAD_SIZE);
+  message.resize(msgsize, '\0');
+  buffer.total_chunks = msgsize/PAYLOAD_SIZE;
+
+  for(int i = 0; i < buffer.total_chunks; i++)
   {
-    printf("Enter the message: ");
-    bzero(buffer, 256);
-    fgets(buffer, 256, stdin);
-
-    /* write in the socket */
-    n = write(sockfd, buffer, strlen(buffer));
-    if (n < 0)
-      printf("ERROR writing to socket\n");
-
-    bzero(buffer, 256);
-
-    /* read from the socket */
-    n = read(sockfd, buffer, 256);
-    if (n < 0)
-      printf("ERROR reading from socket\n");
-
-    printf("%s\n", buffer);
+      buffer.type = type;
+      buffer.chunk = i+1;
+      const char* bufmsg = message.substr(i*PAYLOAD_SIZE, PAYLOAD_SIZE).c_str();
+      strcpy(buffer.payload, bufmsg);
+      if(send(socketfd, &buffer, BUFFER_SIZE, 0) == -1)
+          return false;
   }
-  close(sockfd);
-  return 0;
+
+  return true;
+}
+
+tuple<PROTOCOL_TYPE, string> 
+receiveProtocol(int socketfd)
+{
+  Protocol buffer;
+  string message;
+
+  do {
+      recv(socketfd, &buffer, BUFFER_SIZE, 0);
+      message += buffer.payload;
+  } while(buffer.chunk < buffer.total_chunks);
+  return make_tuple(buffer.type, message);
 }
