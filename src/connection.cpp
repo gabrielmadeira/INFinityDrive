@@ -5,7 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <sstream>
-#include "Connection.hpp"
+#include "connection.hpp"
 
 #define PORT 4000
 

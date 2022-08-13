@@ -1,5 +1,5 @@
 //#include "FileManagementModule.hpp"
-#include "../client/SyncDir.hpp"
+#include "syncdir.hpp"
 using namespace std;
 #include <iostream>
 #include <chrono>

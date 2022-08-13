@@ -1,4 +1,5 @@
-#include "../server/File.hpp"
+#pragma once
+#include "file.hpp"
 #include <string>
 #include <vector>
 using namespace std;

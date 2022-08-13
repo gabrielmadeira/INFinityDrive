@@ -2,9 +2,9 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <iostream>
-#include "Client.hpp"
-#include "Connection.hpp"
-#include "File.hpp"
+#include "client.hpp"
+#include "connection.hpp"
+#include "file.hpp"
 
 using namespace std;
 

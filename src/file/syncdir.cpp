@@ -1,4 +1,4 @@
-#include "SyncDir.hpp"
+#include "syncdir.hpp"
 #include <filesystem>
 #include <iostream>
 #include <sys/stat.h>
