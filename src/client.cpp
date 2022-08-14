@@ -23,10 +23,7 @@ Client::Client(string username, string srvrAdd, int srvrPort)
     getSyncDir();
 }
 
-Client::~Client() 
-{
-    delete(syncdir);
-}
+Client::~Client() { delete(syncdir); }
 
 void Client::getSyncDir()
 {
@@ -60,6 +57,7 @@ void Client::getSyncDir()
                         clientLoop, NULL) != 0)
         printf("Failed to create ClientLoop thread\n");
 }
+
 void * Client::syncDirLoop(void * param) {
     while(true)
     {
@@ -110,14 +108,11 @@ void * Client::clientLoop(void * param) {
         // CMDs in the format "|parameter1|parameter2|etc|"
         switch (get<0>(message))
         {
-        case DATA:
-        case UPLD:
         case DWNL:  writeFile(get<1>(message));  break;
         case DELT:  deleteFile(get<1>(message)); break;
         case LSSV:  getServerList();             break;
         case LSCL:  
         case GSDR:
-        case DVCE:
         default:    cout << "Spooky behavior!" << endl;
         }
     }
@@ -192,12 +187,6 @@ void Client::listServer()
 
 void Client::getServerList() {
     //TODO colocar while aqui
-}
-
-void Client::getSyncDir() 
-{
-     if(getSyncDir(socketfd)) 
-        throw runtime_error("Failed to send file to server");
 }
 
 void Client::listClient()
