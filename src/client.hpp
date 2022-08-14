@@ -13,7 +13,6 @@ class Client {
         pthread_t syncDirID, clientID;
     public:
         string name;
-        char device[HOST_NAME_MAX];
         static int socketfd;
         static SyncDir * syncdir;
 

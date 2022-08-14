@@ -6,8 +6,18 @@
 // Protocol related methods and definitions
 #define PAYLOAD_SIZE 256
 
-enum PROTOCOL_TYPE : short { DATA, UPLD, DWNL, DELT, LSSV, LSCL, GSDR, DVCE };
-static int BUFFER_SIZE = PAYLOAD_SIZE + sizeof(PROTOCOL_TYPE) + 2*sizeof(uint16_t);
+enum PROTOCOL_TYPE : short
+{
+    DATA,
+    UPLD,
+    DWNL,
+    DELT,
+    LSSV,
+    LSCL,
+    GSDR,
+    LOGN
+};
+static int BUFFER_SIZE = PAYLOAD_SIZE + sizeof(PROTOCOL_TYPE) + 2 * sizeof(uint16_t);
 typedef struct protocol
 {
     char payload[PAYLOAD_SIZE]; // 1 byte * 256
@@ -26,4 +36,4 @@ bool upload(int socketfd, File & file);
 File* download(int socketfd, string filename);
 void writeFile(string data);
 
-string serializeFile(File & file);
+string serializeFile(File &file);
