@@ -1,14 +1,13 @@
 #pragma once
 #include <string>
 #include <unistd.h>
-#include <limits.h>
+#include "syncdir.hpp"
 
 using namespace std;
 
-class Client {
+class Client : SyncDir {
     public:
         string name;
-        char device[HOST_NAME_MAX];
         int socketfd;
 
     Client(string username, string srvrAdd, int srvrPort);
