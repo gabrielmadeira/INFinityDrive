@@ -27,7 +27,7 @@ Client::~Client() { delete(syncdir); }
 
 void Client::getSyncDir()
 {
-    filesystem::path filepath = filesystem::current_path() /= "/sync_dir";
+    filesystem::path filepath = filesystem::current_path() /= "sync_dir";
     string fpath = filepath.string();
     tProtocol sync_tuple;
     File* file;
@@ -37,7 +37,7 @@ void Client::getSyncDir()
         if(mkdir(fpath.c_str(), 0777) == -1)
             throw runtime_error("Failed to create sync_dir directory");
         else
-            cout << "Directory sync_dir created";
+            cout << "Directory sync_dir created" << endl;
     }
 
     //Try connection
@@ -112,7 +112,7 @@ void Client::uploadFile(string filepath)
     cout << filepath << "\n";
     File file(filepath);
 
-    if (upload(socketfd, file))
+    if (!upload(socketfd, file))
         throw runtime_error("Failed to send file to server");
 }
 

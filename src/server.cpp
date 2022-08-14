@@ -28,14 +28,14 @@ void User::newUserConnection(int socket)
     pthread_detach(userConnectionsHash[socket].thread);
 }
 
-bool User::upload()
+bool User::upload(string data)
 {
 
-    cout << data.name << " upload!\n";
+    cout << data << " upload!\n";
     return true;
 }
 
-void User::download()
+void User::download(string data)
 {
 }
 

@@ -2,24 +2,25 @@
 #include <string>
 #include <unistd.h>
 #include <limits.h>
-#include "./file/syncdir.hpp"
+#include "syncdir.hpp"
 
 using namespace std;
 
+static int socketfd;
+static SyncDir * syncdir;
+
 class Client {
-    private:
-        string srvrAdd;
-        int srvrPort;
-        pthread_t syncDirID, clientID;
-    public:
-        string name;
-        static int socketfd;
-        static SyncDir * syncdir;
+private:
+    string srvrAdd;
+    int srvrPort;
+    pthread_t syncDirID, clientID;
+public:
+    string name;
 
     Client(string username, string srvrAdd, int srvrPort);
     ~Client();
-    static void uploadFile(string filepath);
     void downloadFile(string filepath);
+    static void uploadFile(string filepath);
     static void deleteFile(string filepath);
     static void deleteLocal(string filepath);
     static void listServer();
