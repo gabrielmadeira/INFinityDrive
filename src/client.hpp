@@ -1,21 +1,31 @@
 #pragma once
 #include <string>
 #include <unistd.h>
-#include "syncdir.hpp"
+#include <limits.h>
+#include "./file/syncdir.hpp"
 
 using namespace std;
 
-class Client : SyncDir {
+class Client {
+    private:
+        string srvrAdd;
+        int srvrPort;
+        pthread_t syncDirID, clientID;
     public:
         string name;
-        int socketfd;
+        static int socketfd;
+        static SyncDir * syncdir;
 
     Client(string username, string srvrAdd, int srvrPort);
-    void uploadFile(string filepath);
+    ~Client();
+    static void uploadFile(string filepath);
     void downloadFile(string filepath);
-    void deleteFile(string filepath);
-    void listServer();
-    void listClient();
+    static void deleteFile(string filepath);
+    static void listServer();
+    static void listClient();
+    static void getServerList();
     void getSyncDir();
+    static void * syncDirLoop(void * param);
+    static void * clientLoop(void * param);
     void disconnect() { close(socketfd); }
 };

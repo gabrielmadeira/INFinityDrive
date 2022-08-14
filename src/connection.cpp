@@ -1,11 +1,13 @@
 #include <netdb.h>
 #include <bits/stdc++.h>
 #include <iostream>
+#include <sstream>
+#include <bits/stdc++.h>
 #include <sys/stat.h>
 #include <filesystem>
-#include "connection.hpp"
 #include <unistd.h>
 #include <strings.h>
+#include "connection.hpp"
 
 #define PORT 4000
 
@@ -30,7 +32,25 @@ File *deserializeFile(string message)
   mstream >> file->chg_time;
   mstream.seekg(ios::cur + 1);
   mstream >> file->mod_time;
+  mstream.seekg(ios::cur+1); 
+  mstream >> file->data;
   return file;
+}
+
+bool deserializePack(string message, string filepath)
+{ 
+   //parser string nome| dado 
+  stringstream pack(message), ss;
+  string arquivo;
+
+  while(std::getline(ss, arquivo, '|')) {
+    //cout << arquivo<< '\n';
+      File file;
+
+      std::getline(ss, file.name, '|');
+      getline(ss, file.data, '|');
+      file.write(filepath + file.name);
+  }
 }
 
 int connectClient(string name, string srvrAdd, int srvrPort)
@@ -81,6 +101,11 @@ File *download(int socketfd, string filename)
   file = deserializeFile(get<1>(filetuple));
   file->name = filename;
   return file;
+}
+
+void writeFile(string data) {
+  File * file = deserializeFile(data);
+  file->write("./sync_dir/" + file->name);
 }
 
 bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)

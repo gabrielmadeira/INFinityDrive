@@ -31,7 +31,9 @@ tuple<PROTOCOL_TYPE, string> receiveProtocol(int socketfd);
 
 // TCP related methods and definitions
 int connectClient(string name, string srvrAdd, int srvrPort);
-bool upload(int socketfd, File &file);
-File *download(int socketfd, string filename);
+bool deserializePack(string message, string filepath);
+bool upload(int socketfd, File & file);
+File* download(int socketfd, string filename);
+void writeFile(string data);
 
 string serializeFile(File &file);
