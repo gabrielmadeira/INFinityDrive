@@ -21,6 +21,7 @@ class Client {
     static void uploadFile(string filepath);
     void downloadFile(string filepath);
     static void deleteFile(string filepath);
+    static void deleteLocal(string filepath);
     static void listServer();
     static void listClient();
     static void getServerList();

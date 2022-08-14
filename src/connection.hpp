@@ -6,17 +6,7 @@
 // Protocol related methods and definitions
 #define PAYLOAD_SIZE 256
 
-enum PROTOCOL_TYPE : short
-{
-    DATA,
-    UPLD,
-    DWNL,
-    DELT,
-    LSSV,
-    LSCL,
-    GSDR,
-    LOGN
-};
+enum PROTOCOL_TYPE : short { DATA, UPLD, DWNL, DELT, LSSV, LSCL, GSDR, LOGN };
 static int BUFFER_SIZE = PAYLOAD_SIZE + sizeof(PROTOCOL_TYPE) + 2 * sizeof(uint16_t);
 typedef struct protocol
 {
@@ -26,8 +16,10 @@ typedef struct protocol
     uint16_t chunk;             // 2 bytes
 } Protocol;
 
+using tProtocol = tuple<PROTOCOL_TYPE, string>;
+
 bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type);
-tuple<PROTOCOL_TYPE, string> receiveProtocol(int socketfd);
+tProtocol receiveProtocol(int socketfd);
 
 // TCP related methods and definitions
 int connectClient(string name, string srvrAdd, int srvrPort);
@@ -36,4 +28,7 @@ bool upload(int socketfd, File & file);
 File* download(int socketfd, string filename);
 void writeFile(string data);
 
-string serializeFile(File &file);
+string serializeFile(File* file);
+File* deserializeFile(string message);
+string serializePack(vector<File *> pack);
+bool deserializePack(string message, string filepath);

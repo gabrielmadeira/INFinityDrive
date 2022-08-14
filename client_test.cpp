@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     sendProtocol(newClient.socketfd, "que droga", DELT);
     
 
-    tuple<PROTOCOL_TYPE, string> ret = receiveProtocol(newClient.socketfd);
+    tProtocol ret = receiveProtocol(newClient.socketfd);
     std::cout << "Cliente :: " << get<1>(ret);
 
     newClient.disconnect();

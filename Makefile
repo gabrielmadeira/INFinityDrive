@@ -3,7 +3,7 @@ DIR_BIN=$(DIR_ROOT)/bin
 DIR_SRC=$(DIR_ROOT)/src
 DIR_FLE=$(DIR_SRC)/file
 
-CPPS=$(DIR_SRC)/connection.cpp $(DIR_FLE)/file.cpp $(DIR_FLE)/filemanagement.cpp  $(DIR_FLE)/syncdir.cpp
+CPPS=$(DIR_SRC)/connection.cpp $(DIR_FLE)/file.cpp $(DIR_FLE)/fileManager.cpp  $(DIR_FLE)/syncdir.cpp
 
 CC=g++
 EXE=.exe

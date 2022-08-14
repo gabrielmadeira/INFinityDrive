@@ -10,6 +10,7 @@
 #include <semaphore.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <filemanager.hpp>
 #include "server.hpp"
 #include "connection.hpp"
 
@@ -29,6 +30,7 @@ void User::newUserConnection(int socket)
 
 bool User::upload()
 {
+
     cout << data.name << " upload!\n";
     return true;
 }
@@ -52,13 +54,14 @@ void User::listServer()
 
 void User::syncAllUserConnections()
 {
-    // após o diretório ser atualizado, será necessário disparar um comando de sincronização para todos os clientes conectados
-    // como isso será feito?
-    // exemplo para iterar o hash de conexões
+    FileManager manager;
     cout << "Syncing " << data.name << " socket connections: ";
+    manager.loadClientFiles(data.name);
+    string message = serializePack(manager.getClientFiles());
     for (auto &it : userConnectionsHash)
     {
         cout << it.first << " "; // first é a chave(ou numero do socket) e second o struct com os dados da conexão
+        sendProtocol(data.socket, message, LSSV);
         // send(); // colocar uma thread no cliente para receber comandos do server
     }
     cout << "\n";
@@ -74,7 +77,7 @@ void *User::userConnectionLoop(void *param)
     int n;
     while (1)
     {
-        tuple<PROTOCOL_TYPE, string> message = receiveProtocol(info.socket);
+        tProtocol message = receiveProtocol(info.socket);
         // if (n < 0)                                                                   adicionar no receive
         // {
         //     printf("%d ERROR reading from socket\n", info.socket);
@@ -88,24 +91,15 @@ void *User::userConnectionLoop(void *param)
 
         printf("%d %s CMD received: %s", info.socket, info.name, get<1>(message));
 
-        // CMDs in the format "|parameter1|parameter2|etc|"
         string delimiter = "|";
         switch (get<0>(message))
         {
-        case DATA:
-        case UPLD:
-            (*info.ref).upload();
-        case DWNL:
-            (*info.ref).download();
-        case DELT:
-            (*info.ref).del(get<1>(message));
-        case LSSV:
-            (*info.ref).listServer();
-        case LSCL:
-        case GSDR:
-            (*info.ref).syncAllUserConnections();
-        default:
-            cout << "Spooky behavior!" << endl;
+        case UPLD: (*info.ref).upload(get<1>(message));   break;
+        case DWNL: (*info.ref).download(get<1>(message)); break;
+        case DELT: (*info.ref).del(get<1>(message));      break;
+        case LSSV: (*info.ref).listServer();              break;
+        case GSDR: (*info.ref).syncAllUserConnections();  break;
+        default:   cout << "Spooky behavior!" << endl;
         }
     }
     return nullptr;
@@ -119,9 +113,7 @@ void Server::serverLoop()
                            (struct sockaddr *)&serverStorage,
                            &addr_size);
 
-        // char user[256];
-        // read(newSocket, user, 256);
-        tuple<PROTOCOL_TYPE, string> user = receiveProtocol(newSocket);
+        tProtocol user = receiveProtocol(newSocket);
         cout << "CON:" << get<0>(user) << "-" << get<1>(user) << "\n";
         if (!usersHash.count(get<1>(user)))
         {
@@ -129,6 +121,5 @@ void Server::serverLoop()
         }
         cout << "Connection #" << newSocket << " from user " << get<1>(user) << "\n";
         usersHash[get<1>(user)].newUserConnection(newSocket);
-        // bzero(user, 256);
     }
 }

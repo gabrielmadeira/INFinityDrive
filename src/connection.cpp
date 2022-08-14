@@ -13,16 +13,16 @@
 
 using namespace std;
 
-string serializeFile(File & file)
+string serializeFile(File* file)
 {
   stringstream filebuffer;
-  filebuffer << file.data << '|' << file.acc_time
-             << '|' << file.chg_time << '|'
-             << file.mod_time << '|';
+  filebuffer << file->data << '|' << file->acc_time
+             << '|' << file->chg_time << '|'
+             << file->mod_time << '|';
   return filebuffer.str();
 }
 
-File *deserializeFile(string message)
+File* deserializeFile(string message)
 {
   File *file;
   stringstream mstream(message);
@@ -35,22 +35,6 @@ File *deserializeFile(string message)
   mstream.seekg(ios::cur+1); 
   mstream >> file->data;
   return file;
-}
-
-bool deserializePack(string message, string filepath)
-{ 
-   //parser string nome| dado 
-  stringstream pack(message), ss;
-  string arquivo;
-
-  while(std::getline(ss, arquivo, '|')) {
-    //cout << arquivo<< '\n';
-      File file;
-
-      std::getline(ss, file.name, '|');
-      getline(ss, file.data, '|');
-      file.write(filepath + file.name);
-  }
 }
 
 int connectClient(string name, string srvrAdd, int srvrPort)
@@ -84,7 +68,7 @@ bool upload(int socketfd, File &file)
   string msg = file.name + '|';
   if (!sendProtocol(socketfd, msg, UPLD))
     return false;
-  if (!sendProtocol(socketfd, serializeFile(file), DATA))
+  if (!sendProtocol(socketfd, serializeFile(&file), DATA))
     return false;
   return true;
 }
@@ -92,7 +76,7 @@ bool upload(int socketfd, File &file)
 File *download(int socketfd, string filename)
 {
   Protocol buffer;
-  tuple<PROTOCOL_TYPE, string> filetuple;
+  tProtocol filetuple;
   File *file;
   string msg = filename + '|';
   if (!sendProtocol(socketfd, msg, DWNL))
@@ -132,7 +116,7 @@ bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
   return true;
 }
 
-tuple<PROTOCOL_TYPE, string>
+tProtocol
 receiveProtocol(int socketfd)
 {
   Protocol buffer;
@@ -167,10 +151,21 @@ bool deserializePack(string message, string filepath)
   return true;
 }
 
+string serializePack(vector<File *> pack)
+{ 
+  string message;
+  for(File* file: pack)
+  {
+    message += serializeFile(file);
+    message += "||";
+  }
+  return message;
+}
+
 bool getSyncDir(int socketfd)
 {
   string filepath = filesystem::current_path().string() +"/sync_dir";
-  tuple<PROTOCOL_TYPE, string> sync_tuple;
+  tProtocol sync_tuple;
   File* file;
 
   if(!sendProtocol(socketfd, "|", GSDR)) return false;
@@ -185,7 +180,7 @@ bool getSyncDir(int socketfd)
 
 bool listServer(int socketfd,string username)
 {
-  tuple<PROTOCOL_TYPE, string> listtuple;
+  tProtocol listtuple;
   if(!sendProtocol(socketfd, "|", LSSV)) return false;
 
   listtuple = receiveProtocol(socketfd);
