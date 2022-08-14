@@ -14,7 +14,6 @@ SyncDir::SyncDir(string path) {
 vector<pair<string,int>> SyncDir::sync() {
     vector<File *> oldFiles = files;
     vector<File *> newFiles = getFiles();
-    vector<File *> diff;
     vector<pair<string,int>> result;
 
     for(File * newFile : newFiles)

@@ -1,17 +1,17 @@
 #include <netdb.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <algorithm>
-#include <cmath>
+#include <bits/stdc++.h>
 #include <iostream>
-#include <sstream>
+#include <sys/stat.h>
+#include <filesystem>
 #include "connection.hpp"
 #include <unistd.h>
 #include <strings.h>
 
 #define PORT 4000
 
-string serializeFile(File &file)
+using namespace std;
+
+string serializeFile(File & file)
 {
   stringstream filebuffer;
   filebuffer << file.data << '|' << file.acc_time
@@ -104,7 +104,6 @@ bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
     if (send(socketfd, &buffer, BUFFER_SIZE, 0) == -1)
       return false;
   }
-
   return true;
 }
 
@@ -125,4 +124,57 @@ receiveProtocol(int socketfd)
   } while (buffer.chunk < buffer.total_chunks);
   cout << "MESSAGE RECEIVED: " << message << "\n";
   return make_tuple(buffer.type, message);
+}
+
+bool deserializePack(string message, string filepath)
+{ 
+  size_t pos = 0;
+  string arquivo, nome, dado, delimiter = "||";
+
+  while ((pos = message.find(delimiter)) != std::string::npos) {
+    File file;
+    stringstream stream(message.substr(0, pos));
+    getline(stream, file.name, '|');
+    getline(stream, file.data, '|');
+    file.write(filepath + '/' + file.name);
+    message.erase(0, pos + delimiter.length());
+  }
+  return true;
+}
+
+bool getSyncDir(int socketfd)
+{
+  string filepath = filesystem::current_path().string() +"/sync_dir";
+  tuple<PROTOCOL_TYPE, string> sync_tuple;
+  File* file;
+
+  if(!sendProtocol(socketfd, "|", GSDR)) return false;
+
+  if (mkdir(filepath.c_str(), 0777) == -1) 
+    cerr << "Error :  " << strerror(errno) << endl;
+  else cout << "sync_dir folder created";
+
+  sync_tuple = receiveProtocol(socketfd); 
+  return deserializePack(get<1>(sync_tuple), filepath);
+}
+
+bool listServer(int socketfd,string username)
+{
+  tuple<PROTOCOL_TYPE, string> listtuple;
+  if(!sendProtocol(socketfd, "|", LSSV)) return false;
+
+  listtuple = receiveProtocol(socketfd);
+  //lista todos os nomes no terminal
+  string file;
+  stringstream list(get<1>(listtuple));
+  while(getline(list, file, '|'))
+  {
+    int indent = 0;
+    while(getline(list, file, '/'))
+    {
+      std::cout << std::string(indent, ' ') << file << std::endl;
+      indent++;
+    }
+  }
+  return true;
 }
