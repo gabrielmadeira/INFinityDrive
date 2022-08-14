@@ -6,32 +6,36 @@
 
 using namespace std;
 
-Client::Client(string username, string srvrAdd, int srvrPort) 
+Client::Client(string username, string srvrAdd, int srvrPort)
 {
-    name = username; 
-    socketfd = connectClient(name, srvrAdd, srvrPort); 
-    if(socketfd == -1)
+    name = username;
+    socketfd = connectClient(name, srvrAdd, srvrPort);
+    if (socketfd == -1)
         throw runtime_error("Couldn't connect to server");
-    string msg = name+'|';
-    if(!sendProtocol(socketfd, msg, DVCE))
+    string msg = name + '|';
+    if (!sendProtocol(socketfd, msg, LOGN))
         throw runtime_error("Couldn't send machine info");
 }
 
-void Client::uploadFile(string filepath) 
+void Client::uploadFile(string filepath)
 {
-    if(filepath.empty()) cout << "Couldn't understand filename" << endl;
+    if (filepath.empty())
+        cout << "Couldn't understand filename" << endl;
+    cout << filepath << "\n";
     File file(filepath);
 
-    if(upload(socketfd, file)) 
+    if (upload(socketfd, file))
         throw runtime_error("Failed to send file to server");
 }
 
-void Client::downloadFile(string filepath) 
+void Client::downloadFile(string filepath)
 {
-    if(filepath.empty()) cout << "Couldn't understand filename" << endl;
+    if (filepath.empty())
+        cout << "Couldn't understand filename" << endl;
 
-    File* newfile = (File*)download(socketfd, filepath);
-    if(!newfile) cout << "No file found with name "+filepath << endl;
+    File *newfile = (File *)download(socketfd, filepath);
+    if (!newfile)
+        cout << "No file found with name " + filepath << endl;
     newfile->write(filepath);
 }
 
@@ -45,7 +49,7 @@ void deleteFile(string filepath)
     }
 }
 
-void Client::listServer() 
+void Client::listServer()
 {
     if(listServer(socketfd, name)) 
         throw runtime_error("Failed to send file to server");
