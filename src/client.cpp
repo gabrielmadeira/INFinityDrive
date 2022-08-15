@@ -27,12 +27,12 @@ Client::~Client() { delete(syncdir); }
 
 void Client::getSyncDir()
 {
-    filesystem::path filepath = filesystem::current_path() /= "sync_dir";
-    string fpath = filepath.string();
+    filesystem::path filepath = filesystem::current_path();
+    string fpath = filepath.string() + "/sync_dir";
     tProtocol sync_tuple;
     File* file;
 
-    if(!filesystem::exists(filepath))
+    if(!filesystem::exists(fpath))
     {
         if(mkdir(fpath.c_str(), 0777) == -1)
             throw runtime_error("Failed to create sync_dir directory");
@@ -44,7 +44,7 @@ void Client::getSyncDir()
     socketfd = connectClient(name, srvrAdd, srvrPort); 
     if(socketfd == -1)
         throw runtime_error("Couldn't connect to server");
-    if (!sendProtocol(socketfd, name+'|', LOGN))
+    if (!sendProtocol(socketfd, name, LOGN))
         throw runtime_error("Couldn't send user info");
 
     //Connection ok
@@ -67,6 +67,7 @@ void * Client::syncDirLoop(void * param) {
 
         for(pair<string,int> file : diff)
         {
+            cout <<  file.first << " || " << file.second << endl;
             string name = "./sync_dir/" + file.first;
             switch(file.second) {
                 case MODIFIED:
@@ -83,8 +84,8 @@ void * Client::syncDirLoop(void * param) {
                     uploadFile(name);
                     break;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     }
 }
 
@@ -97,9 +98,10 @@ void * Client::clientLoop(void * param) {
 
         switch (get<0>(message))
         {
+            case UPLD:
             case DWNL: writeFile(get<1>(message));   break;
             case DELT: deleteLocal(get<1>(message)); break;
-            case LSSV: getServerList();              break;
+            case LSSV: getServerList(get<1>(message));       break;
             default:   cout << "Spooky behavior!" << endl;
         }
     }
@@ -109,7 +111,6 @@ void Client::uploadFile(string filepath)
 {
     if (filepath.empty())
         cout << "Couldn't understand filename" << endl;
-    cout << filepath << "\n";
     File file(filepath);
 
     if (!upload(socketfd, file))
@@ -148,15 +149,28 @@ void Client::listServer()
   string msg = "LIST";
   tProtocol listtuple;
   if(!sendProtocol(socketfd, msg, LSSV))
-    throw runtime_error("Failed to send file to server");
-
-  listtuple = receiveProtocol(socketfd);
-  //lista todos os nomes no terminal
-  cout<< "Arquivos do seu diretório:" << get<1>(listtuple) << endl;
+    throw runtime_error("Failed to communicate with server");
 }
 
-void Client::getServerList() {
+void Client::getServerList(string message) {
     // tProtocol ;
+
+    std::vector<File *> files = deserializePack(message);
+
+    for(File * file : files) //Iterates throw each file
+    {
+        //Displays its metadata
+        tm * mod = localtime(&file->mod_time);
+        tm * acc = localtime(&file->acc_time);
+        tm * chg = localtime(&file->chg_time);
+        char buffer[3][32];
+        // Format: Mo, 15.06.2009 20:20:00
+        strftime(buffer[0], 32, "%a, %d.%m.%Y %H:%M:%S", mod);
+        strftime(buffer[1], 32, "%a, %d.%m.%Y %H:%M:%S", acc);
+        strftime(buffer[2], 32, "%a, %d.%m.%Y %H:%M:%S", chg);
+
+        cout << file->name << "\t\t" << buffer[0] << "\t\t" << buffer[1] << "\t\t" << buffer[2] << endl;
+    }
 }
 
 void Client::listClient()

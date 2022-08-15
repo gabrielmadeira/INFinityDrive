@@ -25,7 +25,7 @@ public:
     static void deleteLocal(string filepath);
     static void listServer();
     static void listClient();
-    static void getServerList();
+    static void getServerList(string message);
     void getSyncDir();
     static void * syncDirLoop(void * param);
     static void * clientLoop(void * param);

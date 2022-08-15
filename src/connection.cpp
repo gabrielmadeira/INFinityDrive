@@ -16,9 +16,7 @@ using namespace std;
 string serializeFile(File* file)
 {
   stringstream filebuffer;
-  filebuffer << file->data << '|' << file->acc_time
-             << '|' << file->chg_time << '|'
-             << file->mod_time << '|';
+  filebuffer << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data << '|';
   return filebuffer.str();
 }
 
@@ -66,9 +64,10 @@ int connectClient(string name, string srvrAdd, int srvrPort)
 bool upload(int socketfd, File &file)
 {
   string msg = file.name + '|';
+  /*
   if (!sendProtocol(socketfd, msg, UPLD))
-    return false;
-  if (!sendProtocol(socketfd, serializeFile(&file), DATA))
+    return false;*/
+  if (!sendProtocol(socketfd, serializeFile(&file), UPLD))
     return false;
   return true;
 }
@@ -135,20 +134,22 @@ receiveProtocol(int socketfd)
   return make_tuple(buffer.type, message);
 }
 
-bool deserializePack(string message, string filepath)
+vector<File *> deserializePack(string message)
 { 
   size_t pos = 0;
   string arquivo, nome, dado, delimiter = "||";
 
+  vector<File *> files;
+
   while ((pos = message.find(delimiter)) != std::string::npos) {
-    File file;
+    File * file;
     stringstream stream(message.substr(0, pos));
-    getline(stream, file.name, '|');
-    getline(stream, file.data, '|');
-    file.write(filepath + '/' + file.name);
+    getline(stream, file->name, '|');
+    getline(stream, file->data, '|');
+    files.push_back(file);
     message.erase(0, pos + delimiter.length());
   }
-  return true;
+  return files;
 }
 
 string serializePack(vector<File *> pack)
@@ -161,7 +162,7 @@ string serializePack(vector<File *> pack)
   }
   return message;
 }
-
+/*
 bool getSyncDir(int socketfd)
 {
   string filepath = filesystem::current_path().string() +"/sync_dir";
@@ -177,7 +178,7 @@ bool getSyncDir(int socketfd)
   sync_tuple = receiveProtocol(socketfd); 
   return deserializePack(get<1>(sync_tuple), filepath);
 }
-
+*/
 bool listServer(int socketfd,string username)
 {
   tProtocol listtuple;

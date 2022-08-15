@@ -23,7 +23,6 @@ tProtocol receiveProtocol(int socketfd);
 
 // TCP related methods and definitions
 int connectClient(string name, string srvrAdd, int srvrPort);
-bool deserializePack(string message, string filepath);
 bool upload(int socketfd, File & file);
 File* download(int socketfd, string filename);
 void writeFile(string data);
@@ -31,4 +30,4 @@ void writeFile(string data);
 string serializeFile(File* file);
 File* deserializeFile(string message);
 string serializePack(vector<File *> pack);
-bool deserializePack(string message, string filepath);
+std::vector<File *> deserializePack(string message);

@@ -8,7 +8,7 @@ using namespace std;
 
 void FileManager::loadClientFiles(string username) {
     struct stat info;
-    string path = "sync_dir_" + username; 
+    string path = "./clients/" + username; 
     this->username = username;
 
     if( stat( path.c_str(), &info ) != 0 || !(info.st_mode & S_IFDIR))

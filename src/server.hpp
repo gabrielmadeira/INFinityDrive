@@ -30,7 +30,7 @@ public:
     User(string username){ data.name = username; }
 
     void newUserConnection(int socket);
-    bool upload(string data);
+    void upload(string message);
     void download(string data);
     void del(string filename);
     void listServer();

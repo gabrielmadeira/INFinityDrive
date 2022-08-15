@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <filemanager.hpp>
 #include "server.hpp"
@@ -28,28 +29,57 @@ void User::newUserConnection(int socket)
     pthread_detach(userConnectionsHash[socket].thread);
 }
 
-bool User::upload(string data)
+void User::upload(string message)
 {
+    //cout << message << " upload!\n"; //Seg Fault
+    File * file = deserializeFile(message);
+    cout << file->name << endl;
 
-    cout << data << " upload!\n";
-    return true;
+    file->write("./clients/" + data.name + "/" + file->name);
+
+    for (auto &it : userConnectionsHash)
+    {
+        if((it.second.socket != data.socket) && (it.second.name == data.name))
+            sendProtocol(it.second.socket,message,UPLD);
+    }
 }
 
-void User::download(string data)
+void User::download(string message)
 {
+    File file("./clients/" + data.name + "/" + data.name);
+
+    sendProtocol(data.socket,serializeFile(&file),DWNL);
 }
 
 void User::del(string filename)
 {
     // inicio seção crítica
     // deletar arquivo
-    cout << "file " << filename << " from user " << data.name << " deleted!\n";
+    //cout << "file " << filename << " from user " << data.name << " deleted!\n";
     // syncAllUserConnections() -> propagar para todos as conexões do usuário conectadas
     // fim seção crítica
+
+    string fullFilepath = "./sync_dir/" + filename;
+    if(fullFilepath.empty()) cout << "Couldn't understand filename" << endl;
+    else if(remove(fullFilepath.c_str()) != 0)
+        cout << "Couldn't delete file" << endl;
+
+    for (auto &it : userConnectionsHash)
+    {
+        if((it.second.socket != data.socket) && (it.second.name == data.name))
+            sendProtocol(it.second.socket,filename,DELT);
+    }
+
 }
 
 void User::listServer()
 {
+    // 5 | name | data | name | data | 
+
+    FileManager manager;
+    manager.loadClientFiles(data.name);
+    string message = serializePack(manager.getClientFiles());
+    sendProtocol(data.socket, message, LSSV);
 }
 
 void User::syncAllUserConnections()
@@ -75,6 +105,21 @@ void *User::userConnectionLoop(void *param)
 
     protocol buffer;
     int n;
+    //Creates directory for client if doesn't exist
+    filesystem::path filepath = filesystem::current_path();
+    string fpath = filepath.string() + "/clients/" + info.name;
+
+    if(!filesystem::exists(fpath))
+    {
+        if(mkdir(fpath.c_str(), 0777) == -1)
+            throw runtime_error("Failed to create " + info.name + " directory");
+        else
+            cout << "Directory " + info.name + " created" << endl;
+    }
+
+
+    
+
     while (1)
     {
         tProtocol message = receiveProtocol(info.socket);
@@ -89,7 +134,7 @@ void *User::userConnectionLoop(void *param)
         //     break;
         // }
 
-        printf("%d %s CMD received: %s", info.socket, info.name, get<1>(message));
+        printf("%d %s CMD received: %s\n", info.socket, info.name.c_str(), get<1>(message).c_str());
 
         string delimiter = "|";
         switch (get<0>(message))
@@ -98,7 +143,7 @@ void *User::userConnectionLoop(void *param)
         case DWNL: (*info.ref).download(get<1>(message)); break;
         case DELT: (*info.ref).del(get<1>(message));      break;
         case LSSV: (*info.ref).listServer();              break;
-        case GSDR: (*info.ref).syncAllUserConnections();  break;
+        case GSDR: (*info.ref).syncAllUserConnections();  break; //Not needed
         default:   cout << "Spooky behavior!" << endl;
         }
     }
