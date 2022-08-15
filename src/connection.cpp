@@ -13,25 +13,62 @@
 
 using namespace std;
 
-string serializeFile(File* file)
+string serializeFile(File *file)
 {
+  cout << file->data.size() << "\n";
   stringstream filebuffer;
-  filebuffer << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data << '|';
+  filebuffer << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data;
+  // filebuffer << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data << '|';
   return filebuffer.str();
 }
 
-File* deserializeFile(string message)
+File *deserializeFile(string message)
 {
-  File *file;
-  stringstream mstream(message);
-  getline(mstream, file->name, '|');
-  mstream >> file->acc_time;
-  mstream.seekg(ios::cur + 1);
-  mstream >> file->chg_time;
-  mstream.seekg(ios::cur + 1);
-  mstream >> file->mod_time;
-  mstream.seekg(ios::cur+1); 
-  mstream >> file->data;
+  File *file = new File();
+  // stringstream mstream(message);
+  // getline(mstream, file->name, '|');
+  // mstream >> file->acc_time;
+  // mstream.seekg(ios::cur + 1);
+  // mstream >> file->chg_time;
+  // mstream.seekg(ios::cur + 1);
+  // mstream >> file->mod_time;
+  // mstream.seekg(ios::cur + 1);
+  // mstream >> file->data;
+
+  cout << "INIT DESERIALIZEFILE\n";
+
+  int pos;
+  string sub = message;
+  pos = sub.find("|");
+
+  file->name = sub.substr(0, pos);
+  cout << sub.substr(0, pos) << endl;
+
+  sub = sub.substr(pos + 1);
+  pos = sub.find("|");
+
+  file->acc_time = stol(sub.substr(0, pos));
+  cout << sub.substr(0, pos) << endl;
+
+  sub = sub.substr(pos + 1);
+  pos = sub.find("|");
+
+  file->chg_time = stoi(sub.substr(0, pos));
+  cout << sub.substr(0, pos) << endl;
+
+  sub = sub.substr(pos + 1);
+  pos = sub.find("|");
+
+  file->mod_time = stol(sub.substr(0, pos));
+  cout << sub.substr(0, pos) << endl;
+
+  sub = sub.substr(pos + 1);
+  pos = sub.find("|");
+
+  file->data = sub;
+  // cout << sub.substr(0, pos) << endl;
+  cout << sub.size() << "\n";
+
   return file;
 }
 
@@ -86,8 +123,9 @@ File *download(int socketfd, string filename)
   return file;
 }
 
-void writeFile(string data) {
-  File * file = deserializeFile(data);
+void writeFile(string data)
+{
+  File *file = deserializeFile(data);
   file->write("./sync_dir/" + file->name);
 }
 
@@ -95,9 +133,9 @@ bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
 {
   Protocol buffer;
   int msgsize = message.size() + (PAYLOAD_SIZE - message.size() % PAYLOAD_SIZE);
-  message.resize(msgsize, '\0');
+  // message.resize(msgsize, '\0');
   buffer.total_chunks = msgsize / PAYLOAD_SIZE;
-  cout << "MESSAGE SENT: " << message << "\n";
+  // cout << "MESSAGE SENT: " << message << "\n";
   cout << "TOTAL CHUNKS: " << buffer.total_chunks << "\n";
   const char *bufmsg = message.c_str();
   for (int i = 0; i < buffer.total_chunks; i++)
@@ -108,7 +146,7 @@ bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
     // const char *bufmsg = message.substr(i * PAYLOAD_SIZE, PAYLOAD_SIZE).c_str();
     // cout << "MESSAGE BUFMSG: " << bufmsg << "\n";
     strncpy(buffer.payload, &bufmsg[i * PAYLOAD_SIZE], PAYLOAD_SIZE);
-    cout << "BUFFER_PAYLOAD: " << buffer.payload << "\n";
+    // cout << "BUFFER_PAYLOAD: " << buffer.payload << "\n";
     if (send(socketfd, &buffer, BUFFER_SIZE, 0) == -1)
       return false;
   }
@@ -126,23 +164,24 @@ receiveProtocol(int socketfd)
     recv(socketfd, &buffer, BUFFER_SIZE, 0);
     cout << "CHUNK: " << buffer.chunk << "\n";
     cout << "TOTAL CHUNKS: " << buffer.total_chunks << "\n";
-    cout << "BUFFER PAYLOAD: " << buffer.payload << "\n";
+    // cout << "BUFFER PAYLOAD: " << buffer.payload << "\n";
 
     message += buffer.payload;
   } while (buffer.chunk < buffer.total_chunks);
-  cout << "MESSAGE RECEIVED: " << message << "\n";
+  // cout << "MESSAGE RECEIVED: " << message << "\n";
   return make_tuple(buffer.type, message);
 }
 
 vector<File *> deserializePack(string message)
-{ 
+{
   size_t pos = 0;
   string arquivo, nome, dado, delimiter = "||";
 
   vector<File *> files;
 
-  while ((pos = message.find(delimiter)) != std::string::npos) {
-    File * file;
+  while ((pos = message.find(delimiter)) != std::string::npos)
+  {
+    File *file;
     stringstream stream(message.substr(0, pos));
     getline(stream, file->name, '|');
     getline(stream, file->data, '|');
@@ -153,9 +192,9 @@ vector<File *> deserializePack(string message)
 }
 
 string serializePack(vector<File *> pack)
-{ 
+{
   string message;
-  for(File* file: pack)
+  for (File *file : pack)
   {
     message += serializeFile(file);
     message += "||";
@@ -171,27 +210,28 @@ bool getSyncDir(int socketfd)
 
   if(!sendProtocol(socketfd, "|", GSDR)) return false;
 
-  if (mkdir(filepath.c_str(), 0777) == -1) 
+  if (mkdir(filepath.c_str(), 0777) == -1)
     cerr << "Error :  " << strerror(errno) << endl;
   else cout << "sync_dir folder created";
 
-  sync_tuple = receiveProtocol(socketfd); 
+  sync_tuple = receiveProtocol(socketfd);
   return deserializePack(get<1>(sync_tuple), filepath);
 }
 */
-bool listServer(int socketfd,string username)
+bool listServer(int socketfd, string username)
 {
   tProtocol listtuple;
-  if(!sendProtocol(socketfd, "|", LSSV)) return false;
+  if (!sendProtocol(socketfd, "|", LSSV))
+    return false;
 
   listtuple = receiveProtocol(socketfd);
-  //lista todos os nomes no terminal
+  // lista todos os nomes no terminal
   string file;
   stringstream list(get<1>(listtuple));
-  while(getline(list, file, '|'))
+  while (getline(list, file, '|'))
   {
     int indent = 0;
-    while(getline(list, file, '/'))
+    while (getline(list, file, '/'))
     {
       std::cout << std::string(indent, ' ') << file << std::endl;
       indent++;

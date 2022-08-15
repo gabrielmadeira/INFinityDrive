@@ -6,7 +6,17 @@
 // Protocol related methods and definitions
 #define PAYLOAD_SIZE 256
 
-enum PROTOCOL_TYPE : short { DATA, UPLD, DWNL, DELT, LSSV, LSCL, GSDR, LOGN };
+enum PROTOCOL_TYPE : short
+{
+    DATA,
+    UPLD,
+    DWNL,
+    DELT,
+    LSSV,
+    LSCL,
+    GSDR,
+    LOGN
+};
 static int BUFFER_SIZE = PAYLOAD_SIZE + sizeof(PROTOCOL_TYPE) + 2 * sizeof(uint16_t);
 typedef struct protocol
 {
@@ -23,11 +33,11 @@ tProtocol receiveProtocol(int socketfd);
 
 // TCP related methods and definitions
 int connectClient(string name, string srvrAdd, int srvrPort);
-bool upload(int socketfd, File & file);
-File* download(int socketfd, string filename);
+bool upload(int socketfd, File &file);
+File *download(int socketfd, string filename);
 void writeFile(string data);
 
-string serializeFile(File* file);
-File* deserializeFile(string message);
+string serializeFile(File *file);
+File *deserializeFile(string message);
 string serializePack(vector<File *> pack);
 std::vector<File *> deserializePack(string message);

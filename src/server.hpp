@@ -12,7 +12,6 @@
 using namespace std;
 // mutex mtx;
 
-
 class User
 {
     struct userConnectionData
@@ -22,15 +21,16 @@ class User
         pthread_t thread;
         User *ref;
     };
+
 public:
     userConnectionData data;
     unordered_map<int, userConnectionData> userConnectionsHash;
 
     User() {}
-    User(string username){ data.name = username; }
+    User(string username) { data.name = username; }
 
     void newUserConnection(int socket);
-    void upload(string message);
+    void upload(string message, int socket);
     void download(string data);
     void del(string filename);
     void listServer();
