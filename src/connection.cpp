@@ -17,7 +17,8 @@ string serializeFile(File *file)
 {
   cout << file->data.size() << "\n";
   stringstream filebuffer;
-  filebuffer << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data;
+  // filebuffer << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data;
+  filebuffer << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data.size();
   // filebuffer << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data << '|';
   return filebuffer.str();
 }
@@ -106,6 +107,35 @@ bool upload(int socketfd, File &file)
     return false;*/
   if (!sendProtocol(socketfd, serializeFile(&file), UPLD))
     return false;
+
+  // SEND ----------------------------- TEST
+
+  string path = "./sync_dir/" + file.name;
+
+  cout << "READ " << path << endl;
+  if (FILE *fp = fopen(path.c_str(), "rb"))
+  {
+    cout << "READING........." << endl;
+    size_t readBytes;
+    char buffer[4096];
+    while ((readBytes = fread(buffer, 1, sizeof(buffer), fp)) > 0)
+    {
+      cout << readBytes << "\n";
+      // cout << buffer << "\n";
+      if (send(socketfd, buffer, readBytes, 0) != readBytes)
+      {
+        cout << "OUTTT READ\n";
+        // handleErrors();
+        // break;
+        return false;
+      }
+    }
+    send(socketfd, buffer, 0, 0);
+    // close(socketfd);
+  }
+
+  // ---------------------------------
+
   return true;
 }
 

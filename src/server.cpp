@@ -35,13 +35,50 @@ void User::upload(string message, int socket)
     File *file = deserializeFile(message);
     cout << file->name << endl;
 
-    file->write("./clients/" + data.name + "/" + file->name);
+    string path = "./clients/" + data.name + "/" + file->name;
 
-    for (auto &it : userConnectionsHash)
+    // file->write(path);
+
+    // RECEIVE ----------------------------
+
+    int chunk = 0;
+    int msgsize = stoi(file->data) + (4096 - message.size() % 4096);
+    int total_chunks = msgsize / 4096;
+
+    cout << "WRITE" << path << endl;
+    if (FILE *fp = fopen(path.c_str(), "wb"))
     {
-        if ((it.second.socket != socket) && (it.second.name == data.name))
-            sendProtocol(it.second.socket, message, UPLD);
+        cout << "WRITING.............\n";
+        size_t readBytes;
+        char buffer[4096];
+        while ((readBytes = recv(socket, buffer, sizeof(buffer), 0)) > 0)
+        {
+            cout << readBytes << "\n";
+            // cout << buffer << "\n";
+            if (fwrite(buffer, 1, readBytes, fp) != readBytes)
+            {
+                cout << "OUTTT WRITE\n";
+                // handleErrors();
+                // break;
+                return;
+            }
+            chunk++;
+            if (chunk >= total_chunks)
+            {
+                break;
+            }
+        }
+        cout << "WRITE CLOSE\n";
+        fclose(fp);
     }
+
+    // ---------------------------------------
+
+    // for (auto &it : userConnectionsHash)
+    // {
+    //     if ((it.second.socket != socket) && (it.second.name == data.name))
+    //         sendProtocol(it.second.socket, message, UPLD);
+    // }
 }
 
 void User::download(string message)
