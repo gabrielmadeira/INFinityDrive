@@ -29,13 +29,13 @@ void User::newUserConnection(int socket)
     pthread_detach(userConnectionsHash[socket].thread);
 }
 
-void User::upload(string message)
+void User::upload(string message,userConnectionData info)
 {
     //cout << message << " upload!\n"; //Seg Fault
 
     File * file = deserializeFile(message);
 
-    tProtocol newMessage = receiveProtocol(data.socket);
+    tProtocol newMessage = receiveProtocol(info.socket);
     file->data = get<1>(newMessage);
     /*
     stringstream nmstream(get<1>(newMessage));
@@ -44,11 +44,11 @@ void User::upload(string message)
     //deserializeFile(message);
     cout << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data << '|' << " end\n";
 
-    file->write("./clients/" + data.name + "/" + file->name);
+    file->write("./clients/" + info.name + "/" + file->name);
 
     for (auto &it : userConnectionsHash) //Deve percorrer pelas conecções e mandar para as outras máquinas do mesmo usuário
     {
-        if((it.first != data.socket) && (it.second.name == data.name))
+        if((it.first != info.socket) && (it.second.name == info.name))
             {
                 sendProtocol(it.first,message,UPLD);
                 sendProtocol(it.first,get<1>(newMessage),DATA);
@@ -56,15 +56,15 @@ void User::upload(string message)
     }
 }
 
-void User::download(string message)
+void User::download(string message,userConnectionData info)
 {
     File file("./clients/" + data.name + "/" + message);
 
-    sendProtocol(data.socket,serializeFile(&file) + '|',DWNL);
-    sendProtocol(data.socket,file.data,DATA);
+    sendProtocol(info.socket,serializeFile(&file) + '|',DWNL);
+    sendProtocol(info.socket,file.data,DATA);
 }
 
-void User::del(string filename)
+void User::del(string filename,userConnectionData info)
 {
     // inicio seção crítica
     // deletar arquivo
@@ -72,7 +72,7 @@ void User::del(string filename)
     // syncAllUserConnections() -> propagar para todos as conexões do usuário conectadas
     // fim seção crítica
 
-    string fullFilepath = "./clients/" + data.name + "/" + filename;
+    string fullFilepath = "./clients/" + info.name + "/" + filename;
     if(fullFilepath.empty()) cout << "Couldn't understand filename" << endl;
     else if(remove(fullFilepath.c_str()) != 0)
         cout << "Couldn't delete file" << endl;
@@ -80,20 +80,20 @@ void User::del(string filename)
     for (auto &it : userConnectionsHash) //Deve percorrer pelas conecções e mandar para as outras máquinas do mesmo usuário
     {
         cout << it.first << " " << data.socket << endl;
-        if((it.first != data.socket) && (it.second.name == data.name))
+        if((it.first != info.socket) && (it.second.name == info.name))
             sendProtocol(it.first,filename,DELT);
     }
 
 }
 
-void User::listServer()
+void User::listServer(userConnectionData info)
 {
     // 5 | name | data | name | data | 
 
     FileManager manager;
-    manager.loadClientFiles(data.name);
+    manager.loadClientFiles(info.name);
     string message = serializePack(manager.getClientFiles());
-    sendProtocol(data.socket, message, LSSV);
+    sendProtocol(info.socket, message, LSSV);
 }
 
 void User::syncAllUserConnections()
@@ -131,9 +131,6 @@ void *User::userConnectionLoop(void *param)
             cout << "Directory " + info.name + " created" << endl;
     }
 
-
-    
-
     while (1)
     {
         tProtocol message = receiveProtocol(info.socket);
@@ -148,15 +145,16 @@ void *User::userConnectionLoop(void *param)
         //     break;
         // }
 
-        printf("%d %s CMD received: %s\n", info.socket, info.name.c_str(), get<1>(message).c_str());
+        printf("%d %s CMD received: %d %s\n", info.socket, info.name.c_str(), get<0>(message),get<1>(message).c_str());
+        //printf("%d %s CMD received: %d %s\n", (*info.ref).data.socket, (*info.ref).data.name.c_str(), get<0>(message),get<1>(message).c_str());
 
         string delimiter = "|";
         switch (get<0>(message))
         {
-        case UPLD: (*info.ref).upload(get<1>(message));   break;
-        case DWNL: (*info.ref).download(get<1>(message)); break;
-        case DELT: (*info.ref).del(get<1>(message));      break;
-        case LSSV: (*info.ref).listServer();              break;
+        case UPLD: (*info.ref).upload(get<1>(message),info);   break;
+        case DWNL: (*info.ref).download(get<1>(message),info); break;
+        case DELT: (*info.ref).del(get<1>(message),info);      break;
+        case LSSV: (*info.ref).listServer(info);              break;
         case GSDR: (*info.ref).syncAllUserConnections();  break; //Not needed
         default:   cout << "Spooky behavior!" << endl;
         }

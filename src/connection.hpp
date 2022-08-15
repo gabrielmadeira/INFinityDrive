@@ -6,7 +6,7 @@
 // Protocol related methods and definitions
 #define PAYLOAD_SIZE 256
 
-enum PROTOCOL_TYPE : short { DATA, UPLD, DWNL, DELT, LSSV, LSCL, GSDR, LOGN };
+enum PROTOCOL_TYPE : short { DATA, UPLD, DWNL, DELT, LSSV, LSCL, GSDR, LOGN, ERRO };
 static int BUFFER_SIZE = PAYLOAD_SIZE + sizeof(PROTOCOL_TYPE) + 2 * sizeof(uint16_t);
 typedef struct protocol
 {

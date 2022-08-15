@@ -30,10 +30,10 @@ public:
     User(string username, int newSocket){ data.name = username; data.socket = newSocket;};
 
     void newUserConnection(int socket);
-    void upload(string message);
-    void download(string data);
-    void del(string filename);
-    void listServer();
+    void upload(string message,userConnectionData info);
+    void download(string data,userConnectionData info);
+    void del(string filename,userConnectionData info);
+    void listServer(userConnectionData info);
     void syncAllUserConnections();
     static void *userConnectionLoop(void *param);
 };
