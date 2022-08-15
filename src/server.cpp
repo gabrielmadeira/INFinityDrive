@@ -37,10 +37,10 @@ void User::upload(string message)
 
     file->write("./clients/" + data.name + "/" + file->name);
 
-    for (auto &it : userConnectionsHash)
+    for (auto &it : userConnectionsHash) //Deve percorrer pelas conecções e mandar para as outras máquinas do mesmo usuário
     {
-        if((it.second.socket != data.socket) && (it.second.name == data.name))
-            sendProtocol(it.second.socket,message,UPLD);
+        if((it.first != data.socket) && (it.second.name == data.name))
+            sendProtocol(it.first,message,UPLD);
     }
 }
 
@@ -59,15 +59,16 @@ void User::del(string filename)
     // syncAllUserConnections() -> propagar para todos as conexões do usuário conectadas
     // fim seção crítica
 
-    string fullFilepath = "./sync_dir/" + filename;
+    string fullFilepath = "./clients/" + data.name + "/" + filename;
     if(fullFilepath.empty()) cout << "Couldn't understand filename" << endl;
     else if(remove(fullFilepath.c_str()) != 0)
         cout << "Couldn't delete file" << endl;
 
-    for (auto &it : userConnectionsHash)
+    for (auto &it : userConnectionsHash) //Deve percorrer pelas conecções e mandar para as outras máquinas do mesmo usuário
     {
-        if((it.second.socket != data.socket) && (it.second.name == data.name))
-            sendProtocol(it.second.socket,filename,DELT);
+        cout << it.first << " " << data.socket << endl;
+        if((it.first != data.socket) && (it.second.name == data.name))
+            sendProtocol(it.first,filename,DELT);
     }
 
 }
@@ -162,7 +163,7 @@ void Server::serverLoop()
         cout << "CON:" << get<0>(user) << "-" << get<1>(user) << "\n";
         if (!usersHash.count(get<1>(user)))
         {
-            usersHash[get<1>(user)] = User(get<1>(user));
+            usersHash[get<1>(user)] = User(get<1>(user),newSocket);
         }
         cout << "Connection #" << newSocket << " from user " << get<1>(user) << "\n";
         usersHash[get<1>(user)].newUserConnection(newSocket);

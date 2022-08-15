@@ -76,7 +76,7 @@ void * Client::syncDirLoop(void * param) {
                     break;
                 case DELETED:
                     cout << "File " << file.first << " deleted" << endl;
-                    if(!sendProtocol(socketfd,file.first + '|',DELT))
+                    if(!sendProtocol(socketfd,file.first,DELT))
                         throw runtime_error("Failed to delete file");
                     break;
                 case CREATED:
@@ -132,7 +132,7 @@ void Client::deleteFile(string filepath)
 {
     deleteLocal(filepath);
     
-    if(!sendProtocol(socketfd,filepath + '|',DELT))
+    if(!sendProtocol(socketfd,filepath,DELT))
         throw runtime_error("Failed to delete file");
 }
 

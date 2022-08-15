@@ -27,7 +27,7 @@ public:
     unordered_map<int, userConnectionData> userConnectionsHash;
 
     User() {}
-    User(string username){ data.name = username; }
+    User(string username, int newSocket){ data.name = username; data.socket = newSocket;};
 
     void newUserConnection(int socket);
     void upload(string message);
