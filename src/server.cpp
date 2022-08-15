@@ -32,15 +32,27 @@ void User::newUserConnection(int socket)
 void User::upload(string message)
 {
     //cout << message << " upload!\n"; //Seg Fault
+
     File * file = deserializeFile(message);
-    cout << file->name << endl;
+
+    tProtocol newMessage = receiveProtocol(data.socket);
+    file->data = get<1>(newMessage);
+    /*
+    stringstream nmstream(get<1>(newMessage));
+    getline(nmstream, file->data, '|');
+    */
+    //deserializeFile(message);
+    cout << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data << '|' << " end\n";
 
     file->write("./clients/" + data.name + "/" + file->name);
 
     for (auto &it : userConnectionsHash) //Deve percorrer pelas conecções e mandar para as outras máquinas do mesmo usuário
     {
         if((it.first != data.socket) && (it.second.name == data.name))
-            sendProtocol(it.first,message,UPLD);
+            {
+                sendProtocol(it.first,message,UPLD);
+                sendProtocol(it.first,get<1>(newMessage),DATA);
+            }
     }
 }
 

@@ -16,15 +16,36 @@ using namespace std;
 string serializeFile(File* file)
 {
   stringstream filebuffer;
-  filebuffer << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data << '|';
+  filebuffer << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time;
   return filebuffer.str();
 }
 
 File* deserializeFile(string message)
 {
-  File *file;
+  File *file = new File();
+  /*
+  vector<string> fullstream;
+  cout << message << endl;
+
+  stringstream mstream(message);
+  while(mstream.good()) {
+    string substr;
+    getline(mstream, substr, '|');
+    fullstream.push_back(substr);
+  }
+  file->name = fullstream.at(0);
+  file->acc_time = fullstream.at(1);
+  file->chg_time = fullstream.at(2);
+  file->mod_time = fullstream.at(3);
+  file->data = fullstream.at(4);
+  */
+  
   stringstream mstream(message);
   getline(mstream, file->name, '|');
+  getline(mstream, file->acc_time, '|');
+  getline(mstream, file->chg_time, '|');
+  getline(mstream, file->mod_time, '|');
+  /*
   mstream >> file->acc_time;
   mstream.seekg(ios::cur + 1);
   mstream >> file->chg_time;
@@ -32,6 +53,7 @@ File* deserializeFile(string message)
   mstream >> file->mod_time;
   mstream.seekg(ios::cur+1); 
   mstream >> file->data;
+  */
   return file;
 }
 
@@ -61,13 +83,13 @@ int connectClient(string name, string srvrAdd, int srvrPort)
   return socketfd;
 }
 
-bool upload(int socketfd, File &file)
+bool upload(int socketfd, File * file)
 {
-  string msg = file.name + '|';
-  /*
-  if (!sendProtocol(socketfd, msg, UPLD))
-    return false;*/
-  if (!sendProtocol(socketfd, serializeFile(&file), UPLD))
+  //string msg = file->name + '|' + file->acc_time + '|' + file->chg_time + '|' + file->mod_time + '|';
+  
+  if (!sendProtocol(socketfd, serializeFile(file) + '|', UPLD))
+    return false;
+  if (!sendProtocol(socketfd, file->data, DATA))
     return false;
   return true;
 }
@@ -88,6 +110,7 @@ File *download(int socketfd, string filename)
 
 void writeFile(string data) {
   File * file = deserializeFile(data);
+
   file->write("./sync_dir/" + file->name);
 }
 
@@ -142,10 +165,12 @@ vector<File *> deserializePack(string message)
   vector<File *> files;
 
   while ((pos = message.find(delimiter)) != std::string::npos) {
-    File * file;
+    File * file = new File();
     stringstream stream(message.substr(0, pos));
     getline(stream, file->name, '|');
-    getline(stream, file->data, '|');
+    getline(stream, file->acc_time, '|');
+    getline(stream, file->chg_time, '|');
+    getline(stream, file->mod_time, '|');
     files.push_back(file);
     message.erase(0, pos + delimiter.length());
   }

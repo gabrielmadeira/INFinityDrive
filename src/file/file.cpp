@@ -48,9 +48,20 @@ void File::updateMetadata(string filePath) {
     if(stat(filePath.c_str(), &result)==0)
     {
         name = filePath.substr(filePath.find_last_of("/\\") + 1);
-        mod_time = result.st_mtime;
-        acc_time = result.st_atime;
-        chg_time = result.st_ctime;
+
+        //time_t aux = result.st_mtime;
+        tm * mod = localtime((time_t *)&(result.st_mtime));
+        tm * acc = localtime((time_t *)&(result.st_mtime));
+        tm * chg = localtime((time_t *)&(result.st_mtime));
+        char buffer[3][32];
+        // Format: Mo, 15.06.2009 20:20:00
+        strftime(buffer[0], 32, "%a, %d.%m.%Y %H:%M:%S", mod);
+        strftime(buffer[1], 32, "%a, %d.%m.%Y %H:%M:%S", acc);
+        strftime(buffer[2], 32, "%a, %d.%m.%Y %H:%M:%S", chg);
+
+        mod_time = string(buffer[0]);
+        acc_time = string(buffer[1]);
+        chg_time = string(buffer[2]);
     }
     else throw runtime_error(string("Error: No such file or directory"));
 }

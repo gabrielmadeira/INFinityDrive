@@ -113,7 +113,7 @@ void Client::uploadFile(string filepath)
         cout << "Couldn't understand filename" << endl;
     File file(filepath);
 
-    if (!upload(socketfd, file))
+    if (!upload(socketfd, &file))
         throw runtime_error("Failed to send file to server");
 }
 
@@ -159,17 +159,7 @@ void Client::getServerList(string message) {
 
     for(File * file : files) //Iterates throw each file
     {
-        //Displays its metadata
-        tm * mod = localtime(&file->mod_time);
-        tm * acc = localtime(&file->acc_time);
-        tm * chg = localtime(&file->chg_time);
-        char buffer[3][32];
-        // Format: Mo, 15.06.2009 20:20:00
-        strftime(buffer[0], 32, "%a, %d.%m.%Y %H:%M:%S", mod);
-        strftime(buffer[1], 32, "%a, %d.%m.%Y %H:%M:%S", acc);
-        strftime(buffer[2], 32, "%a, %d.%m.%Y %H:%M:%S", chg);
-
-        cout << file->name << "\t\t" << buffer[0] << "\t\t" << buffer[1] << "\t\t" << buffer[2] << endl;
+        cout << file->name << "\t\t" << file->mod_time << "\t\t" << file->acc_time << "\t\t" << file->chg_time << endl;
     }
 }
 
@@ -182,16 +172,6 @@ void Client::listClient()
     cout << "Name\t" << "\t\t\tLast Modified\t" << "\t\tLast Acessed\t" << "\t\tLast changed" << endl;
     for(File * file : files) //Iterates throw each file
     {
-        //Displays its metadata
-        tm * mod = localtime(&file->mod_time);
-        tm * acc = localtime(&file->acc_time);
-        tm * chg = localtime(&file->chg_time);
-        char buffer[3][32];
-        // Format: Mo, 15.06.2009 20:20:00
-        strftime(buffer[0], 32, "%a, %d.%m.%Y %H:%M:%S", mod);
-        strftime(buffer[1], 32, "%a, %d.%m.%Y %H:%M:%S", acc);
-        strftime(buffer[2], 32, "%a, %d.%m.%Y %H:%M:%S", chg);
-
-        cout << file->name << "\t\t" << buffer[0] << "\t\t" << buffer[1] << "\t\t" << buffer[2] << endl;
+        cout << file->name << "\t\t" << file->mod_time << "\t\t" << file->acc_time << "\t\t" << file->chg_time << endl;
     }
 }

@@ -9,13 +9,13 @@ class File {
         /* Metadata */
 
         // Modification time
-        time_t mod_time;
+        string mod_time;
 
         // Access time
-        time_t acc_time;
+        string acc_time;
         
         // Change or Creation time
-        time_t chg_time;
+        string chg_time;
 
         File();
         File(string filePath);
