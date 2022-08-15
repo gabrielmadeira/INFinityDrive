@@ -58,9 +58,10 @@ void User::upload(string message)
 
 void User::download(string message)
 {
-    File file("./clients/" + data.name + "/" + data.name);
+    File file("./clients/" + data.name + "/" + message);
 
-    sendProtocol(data.socket,serializeFile(&file),DWNL);
+    sendProtocol(data.socket,serializeFile(&file) + '|',DWNL);
+    sendProtocol(data.socket,file.data,DATA);
 }
 
 void User::del(string filename)

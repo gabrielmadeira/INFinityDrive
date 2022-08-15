@@ -94,24 +94,14 @@ bool upload(int socketfd, File * file)
   return true;
 }
 
-File *download(int socketfd, string filename)
-{
-  Protocol buffer;
-  tProtocol filetuple;
-  File *file;
-  string msg = filename + '|';
-  if (!sendProtocol(socketfd, msg, DWNL))
-    return NULL;
-  filetuple = receiveProtocol(socketfd);
-  file = deserializeFile(get<1>(filetuple));
-  file->name = filename;
-  return file;
-}
-
-void writeFile(string data) {
+void writeFile(string data, int socket, string path) {
   File * file = deserializeFile(data);
 
-  file->write("./sync_dir/" + file->name);
+  tProtocol filedata = receiveProtocol(socket);
+
+  file->data = get<1>(filedata);
+
+  file->write(path + file->name);
 }
 
 bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)

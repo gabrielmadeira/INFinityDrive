@@ -24,8 +24,7 @@ tProtocol receiveProtocol(int socketfd);
 // TCP related methods and definitions
 int connectClient(string name, string srvrAdd, int srvrPort);
 bool upload(int socketfd, File * file);
-File* download(int socketfd, string filename);
-void writeFile(string data);
+void writeFile(string data, int socket, string path);
 
 string serializeFile(File* file);
 File* deserializeFile(string message);

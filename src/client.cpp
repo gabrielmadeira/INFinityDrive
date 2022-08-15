@@ -98,8 +98,8 @@ void * Client::clientLoop(void * param) {
 
         switch (get<0>(message))
         {
-            case UPLD:
-            case DWNL: writeFile(get<1>(message));   break;
+            case UPLD: writeFile(get<1>(message), socketfd, "./sync_dir/");   break;
+            case DWNL: writeFile(get<1>(message), socketfd, "./");   break;
             case DELT: deleteLocal(get<1>(message)); break;
             case LSSV: getServerList(get<1>(message));       break;
             default:   cout << "Spooky behavior!" << endl;
@@ -117,15 +117,13 @@ void Client::uploadFile(string filepath)
         throw runtime_error("Failed to send file to server");
 }
 
-void Client::downloadFile(string filepath)
+void Client::downloadFile(string filename)
 {
-    if (filepath.empty())
+    if (filename.empty())
         cout << "Couldn't understand filename" << endl;
 
-    File *newfile = (File *)download(socketfd, filepath);
-    if (!newfile)
-        cout << "No file found with name " + filepath << endl;
-    newfile->write(filepath);
+    if (!sendProtocol(socketfd, filename, DWNL))
+        throw runtime_error("Failed to download file");
 }
 
 void Client::deleteFile(string filepath)
