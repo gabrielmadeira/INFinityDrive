@@ -133,16 +133,34 @@ receiveProtocol(int socketfd)
 {
   Protocol buffer;
   string message;
-
+  int nBytes;
   do
   {
-    recv(socketfd, &buffer, BUFFER_SIZE, 0);
+    nBytes = recv(socketfd, &buffer, BUFFER_SIZE, 0);
+    if (nBytes < 0)
+    {
+      printf("%d ERROR reading from socket\n", socketfd);
+      break;
+      ;
+    }
+    if (nBytes == 0)
+    {
+      printf("%d Disconnected\n", socketfd);
+      break;
+    }
+
     cout << "CHUNK: " << buffer.chunk << "\n";
     cout << "TOTAL CHUNKS: " << buffer.total_chunks << "\n";
     cout << "BUFFER PAYLOAD: " << buffer.payload << "\n";
 
     message += buffer.payload;
   } while (buffer.chunk < buffer.total_chunks);
+  if (nBytes <= 0)
+  {
+    // Error or disconnected
+    return make_tuple(ERRO, "");
+  }
+
   cout << "MESSAGE RECEIVED: " << message << "\n";
   return make_tuple(buffer.type, message);
 }

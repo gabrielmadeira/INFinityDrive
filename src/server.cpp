@@ -144,6 +144,8 @@ void *User::userConnectionLoop(void *param)
         //     printf("%d Disconnected\n", info.socket);
         //     break;
         // }
+        if (get<0>(message) == ERRO)
+            break;
 
         printf("%d %s CMD received: %d %s\n", info.socket, info.name.c_str(), get<0>(message),get<1>(message).c_str());
         //printf("%d %s CMD received: %d %s\n", (*info.ref).data.socket, (*info.ref).data.name.c_str(), get<0>(message),get<1>(message).c_str());

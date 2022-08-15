@@ -96,6 +96,9 @@ void * Client::clientLoop(void * param) {
     {
         tProtocol message = receiveProtocol(socketfd);
 
+        if (get<0>(message) == ERRO)
+            break;
+        
         switch (get<0>(message))
         {
             case UPLD: writeFile(get<1>(message), socketfd, "./sync_dir/");   break;
