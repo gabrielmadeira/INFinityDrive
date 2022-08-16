@@ -29,66 +29,76 @@ void User::newUserConnection(int socket)
     pthread_detach(userConnectionsHash[socket].thread);
 }
 
-void User::upload(string message,userConnectionData info)
+void User::upload(string message, userConnectionData info)
 {
-    //cout << message << " upload!\n"; //Seg Fault
+    File *file = deserializeFile(message);
 
-    File * file = deserializeFile(message);
-
-    tProtocol newMessage = receiveProtocol(info.socket);
-    file->data = get<1>(newMessage);
+    // tProtocol newMessage = receiveProtocol(info.socket);
+    // file->data = get<1>(newMessage);
     /*
     stringstream nmstream(get<1>(newMessage));
     getline(nmstream, file->data, '|');
     */
-    //deserializeFile(message);
-    cout << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data << '|' << " end\n";
+    // deserializeFile(message);
+    //  cout << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data << '|' << " end\n";
 
-    file->write("./clients/" + info.name + "/" + file->name);
+    // file->write("./clients/" + info.name + "/" + file->name);
+    string path = "./clients/" + info.name + "/" + file->name;
 
-    for (auto &it : userConnectionsHash) //Deve percorrer pelas conecções e mandar para as outras máquinas do mesmo usuário
+    // RECEIVE ----------------------------
+
+    receiveFile(path, info.socket, file->size);
+
+    // ---------------------------------------
+
+    for (auto &it : userConnectionsHash) // Deve percorrer pelas conecções e mandar para as outras máquinas do mesmo usuário
     {
-        if((it.first != info.socket) && (it.second.name == info.name))
-            {
-                sendProtocol(it.first,message,UPLD);
-                sendProtocol(it.first,get<1>(newMessage),DATA);
-            }
+        if ((it.first != info.socket) && (it.second.name == info.name))
+        {
+            sendProtocol(it.first, message, UPLD);
+            // sendProtocol(it.first,get<1>(newMessage),DATA);
+            cout << "SEND FILE SIZE: " << file->size << endl;
+            sendFile(path, it.first);
+        }
     }
 }
 
-void User::download(string message,userConnectionData info)
+void User::download(string message, userConnectionData info)
 {
     File file("./clients/" + data.name + "/" + message);
+    string path = "./clients/" + data.name + "/" + message;
 
-    sendProtocol(info.socket,serializeFile(&file) + '|',DWNL);
-    sendProtocol(info.socket,file.data,DATA);
+    sendProtocol(info.socket, serializeFile(&file) + '|', DWNL);
+    // sendProtocol(info.socket, file.data, DATA);
+    cout << "SEND FILE SIZE: " << file.data.size() << endl;
+    sendFile(path, info.socket);
 }
 
-void User::del(string filename,userConnectionData info)
+void User::del(string filename, userConnectionData info)
 {
     // inicio seção crítica
     // deletar arquivo
-    //cout << "file " << filename << " from user " << data.name << " deleted!\n";
+    // cout << "file " << filename << " from user " << data.name << " deleted!\n";
     // syncAllUserConnections() -> propagar para todos as conexões do usuário conectadas
     // fim seção crítica
 
     string fullFilepath = "./clients/" + info.name + "/" + filename;
-    if(fullFilepath.empty()) cout << "Couldn't understand filename" << endl;
-    else if(remove(fullFilepath.c_str()) != 0)
+    if (fullFilepath.empty())
+        cout << "Couldn't understand filename" << endl;
+    else if (remove(fullFilepath.c_str()) != 0)
         cout << "Couldn't delete file" << endl;
 
-    for (auto &it : userConnectionsHash) //Deve percorrer pelas conecções e mandar para as outras máquinas do mesmo usuário
+    for (auto &it : userConnectionsHash) // Deve percorrer pelas conecções e mandar para as outras máquinas do mesmo usuário
     {
         cout << it.first << " " << data.socket << endl;
-        if((it.first != info.socket) && (it.second.name == info.name))
-            sendProtocol(it.first,filename,DELT);
+        if ((it.first != info.socket) && (it.second.name == info.name))
+            sendProtocol(it.first, filename, DELT);
     }
-
 }
 
 void User::listServer(userConnectionData info)
 {
-    // 5 | name | data | name | data | 
+    // 5 | name | data | name | data |
 
     FileManager manager;
     manager.loadClientFiles(info.name);
@@ -119,13 +129,13 @@ void *User::userConnectionLoop(void *param)
 
     protocol buffer;
     int n;
-    //Creates directory for client if doesn't exist
+    // Creates directory for client if doesn't exist
     filesystem::path filepath = filesystem::current_path();
     string fpath = filepath.string() + "/clients/" + info.name;
 
-    if(!filesystem::exists(fpath))
+    if (!filesystem::exists(fpath))
     {
-        if(mkdir(fpath.c_str(), 0777) == -1)
+        if (mkdir(fpath.c_str(), 0777) == -1)
             throw runtime_error("Failed to create " + info.name + " directory");
         else
             cout << "Directory " + info.name + " created" << endl;
@@ -147,18 +157,29 @@ void *User::userConnectionLoop(void *param)
         if (get<0>(message) == ERRO)
             break;
 
-        printf("%d %s CMD received: %d %s\n", info.socket, info.name.c_str(), get<0>(message),get<1>(message).c_str());
-        //printf("%d %s CMD received: %d %s\n", (*info.ref).data.socket, (*info.ref).data.name.c_str(), get<0>(message),get<1>(message).c_str());
+        printf("%d %s CMD received: %d %s\n", info.socket, info.name.c_str(), get<0>(message), get<1>(message).c_str());
+        // printf("%d %s CMD received: %d %s\n", (*info.ref).data.socket, (*info.ref).data.name.c_str(), get<0>(message),get<1>(message).c_str());
 
         string delimiter = "|";
         switch (get<0>(message))
         {
-        case UPLD: (*info.ref).upload(get<1>(message),info);   break;
-        case DWNL: (*info.ref).download(get<1>(message),info); break;
-        case DELT: (*info.ref).del(get<1>(message),info);      break;
-        case LSSV: (*info.ref).listServer(info);              break;
-        case GSDR: (*info.ref).syncAllUserConnections();  break; //Not needed
-        default:   cout << "Spooky behavior!" << endl;
+        case UPLD:
+            (*info.ref).upload(get<1>(message), info);
+            break;
+        case DWNL:
+            (*info.ref).download(get<1>(message), info);
+            break;
+        case DELT:
+            (*info.ref).del(get<1>(message), info);
+            break;
+        case LSSV:
+            (*info.ref).listServer(info);
+            break;
+        case GSDR:
+            (*info.ref).syncAllUserConnections();
+            break; // Not needed
+        default:
+            cout << "Spooky behavior!" << endl;
         }
     }
     return nullptr;
@@ -176,7 +197,7 @@ void Server::serverLoop()
         cout << "CON:" << get<0>(user) << "-" << get<1>(user) << "\n";
         if (!usersHash.count(get<1>(user)))
         {
-            usersHash[get<1>(user)] = User(get<1>(user),newSocket);
+            usersHash[get<1>(user)] = User(get<1>(user), newSocket);
         }
         cout << "Connection #" << newSocket << " from user " << get<1>(user) << "\n";
         usersHash[get<1>(user)].newUserConnection(newSocket);

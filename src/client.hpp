@@ -7,13 +7,16 @@
 using namespace std;
 
 static int socketfd;
-static SyncDir * syncdir;
+static SyncDir *syncdir;
+static bool serverUpdate = false;
 
-class Client {
+class Client
+{
 private:
     string srvrAdd;
     int srvrPort;
     pthread_t syncDirID, clientID;
+
 public:
     string name;
 
@@ -27,7 +30,7 @@ public:
     static void listClient();
     static void getServerList(string message);
     void getSyncDir();
-    static void * syncDirLoop(void * param);
-    static void * clientLoop(void * param);
+    static void *syncDirLoop(void *param);
+    static void *clientLoop(void *param);
     void disconnect() { close(socketfd); }
 };

@@ -12,7 +12,6 @@
 using namespace std;
 // mutex mtx;
 
-
 class User
 {
     struct userConnectionData
@@ -22,17 +21,22 @@ class User
         pthread_t thread;
         User *ref;
     };
+
 public:
     userConnectionData data;
     unordered_map<int, userConnectionData> userConnectionsHash;
 
     User() {}
-    User(string username, int newSocket){ data.name = username; data.socket = newSocket;};
+    User(string username, int newSocket)
+    {
+        data.name = username;
+        data.socket = newSocket;
+    };
 
     void newUserConnection(int socket);
-    void upload(string message,userConnectionData info);
-    void download(string data,userConnectionData info);
-    void del(string filename,userConnectionData info);
+    void upload(string message, userConnectionData info);
+    void download(string data, userConnectionData info);
+    void del(string filename, userConnectionData info);
     void listServer(userConnectionData info);
     void syncAllUserConnections();
     static void *userConnectionLoop(void *param);
@@ -42,7 +46,6 @@ class Server
 {
 public:
     unordered_map<string, User> usersHash;
-    // TODO: recuperar usuários existentes do disco
 
     int serverSocket, newSocket;
     struct sockaddr_in serverAddr;
