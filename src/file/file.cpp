@@ -55,7 +55,6 @@ void File::updateMetadata(string filePath)
     {
         name = filePath.substr(filePath.find_last_of("/\\") + 1);
 
-        // time_t aux = result.st_mtime;
         tm *mod = localtime((time_t *)&(result.st_mtime));
         tm *acc = localtime((time_t *)&(result.st_mtime));
         tm *chg = localtime((time_t *)&(result.st_mtime));

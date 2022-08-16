@@ -63,17 +63,14 @@ int connectClient(string name, string srvrAdd, int srvrPort)
 
 void sendFile(string path, int socket)
 {
-  cout << "READ " << path << endl;
   if (FILE *fp = fopen(path.c_str(), "rb"))
   {
-    cout << "READING........." << endl;
     size_t readBytes;
     char buffer[4096];
     while ((readBytes = fread(buffer, 1, sizeof(buffer), fp)) > 0)
     {
       if (send(socket, buffer, readBytes, 0) != readBytes)
       {
-        cout << "OUTTT READ\n";
         return;
       }
     }
@@ -89,17 +86,14 @@ void receiveFile(string path, int socket, int size)
   int msgsize = size + (BUFFER_SIZE - size % BUFFER_SIZE);
   int total_chunks = msgsize / BUFFER_SIZE;
 
-  cout << "WRITE" << path << " SIZE: " << size << endl;
   if (FILE *fp = fopen(path.c_str(), "wb"))
   {
-    cout << "WRITING.............\n";
     size_t readBytes;
     char buffer[BUFFER_SIZE];
     while ((readBytes = recv(socket, buffer, sizeof(buffer), 0)) > 0)
     {
       if (fwrite(buffer, 1, readBytes, fp) != readBytes)
       {
-        cout << "OUTTT WRITE\n";
         return;
       }
       chunk++;
@@ -108,7 +102,6 @@ void receiveFile(string path, int socket, int size)
         break;
       }
     }
-    cout << "WRITE CLOSE\n";
     fclose(fp);
   }
 }
@@ -120,9 +113,7 @@ bool upload(int socketfd, File *file, string path, int forcePropagation)
   if (!sendProtocol(socketfd, serializeFile(file) + '|', protocol))
     return false;
 
-  cout << "SEND FILE SIZE: " << file->size << endl;
   sendFile(path, socketfd);
-
   return true;
 }
 
@@ -140,15 +131,12 @@ bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
   int msgsize = message.size() + (PAYLOAD_SIZE - message.size() % PAYLOAD_SIZE);
   message.resize(msgsize, '\0');
   buffer.total_chunks = msgsize / PAYLOAD_SIZE;
-  cout << "MESSAGE SENT: " << message << "\n";
-  cout << "TOTAL CHUNKS: " << buffer.total_chunks << "\n";
   const char *bufmsg = message.c_str();
   for (int i = 0; i < buffer.total_chunks; i++)
   {
     buffer.type = type;
     buffer.chunk = i + 1;
     strncpy(buffer.payload, &bufmsg[i * PAYLOAD_SIZE], PAYLOAD_SIZE);
-    cout << "BUFFER_PAYLOAD: " << buffer.payload << "\n";
     if (send(socketfd, &buffer, BUFFER_SIZE, 0) == -1)
       return false;
   }
@@ -176,10 +164,6 @@ receiveProtocol(int socketfd)
       break;
     }
 
-    cout << "CHUNK: " << buffer.chunk << "\n";
-    cout << "TOTAL CHUNKS: " << buffer.total_chunks << "\n";
-    cout << "BUFFER PAYLOAD: " << buffer.payload << "\n";
-
     message += buffer.payload;
   } while (buffer.chunk < buffer.total_chunks);
   if (nBytes <= 0)
@@ -187,8 +171,6 @@ receiveProtocol(int socketfd)
     // Error or disconnected
     return make_tuple(ERRO, "");
   }
-
-  cout << "MESSAGE RECEIVED: " << message << "\n";
   return make_tuple(buffer.type, message);
 }
 

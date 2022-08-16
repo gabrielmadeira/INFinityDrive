@@ -46,6 +46,7 @@ void Client::getSyncDir()
     if (!sendProtocol(socketfd, name, LOGN))
         throw runtime_error("Couldn't send user info");
 
+    cout << "Client Connected" << endl;
     // Connection ok
 
     syncdir = new SyncDir("./sync_dir");
@@ -72,7 +73,6 @@ void *Client::syncDirLoop(void *param)
 
         for (pair<string, int> file : diff)
         {
-            cout << file.first << " || " << file.second << endl;
             string name = "./sync_dir/" + file.first;
             switch (file.second)
             {
@@ -177,7 +177,7 @@ void Client::getServerList(string message)
 {
     std::vector<File *> files = deserializePack(message);
 
-    for (File *file : files) // Iterates throw each file
+    for (File *file : files) // Iterates through each file
     {
         cout << file->name << "\t\t" << file->mod_time << "\t\t" << file->acc_time << "\t\t" << file->chg_time << endl;
     }
@@ -193,7 +193,7 @@ void Client::listClient()
          << "\t\t\tLast Modified\t"
          << "\t\tLast Acessed\t"
          << "\t\tLast changed" << endl;
-    for (File *file : files) // Iterates throw each file
+    for (File *file : files) // Iterates through each file
     {
         cout << file->name << "\t\t" << file->mod_time << "\t\t" << file->acc_time << "\t\t" << file->chg_time << endl;
     }
