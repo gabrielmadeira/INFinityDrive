@@ -17,6 +17,7 @@ class User
     struct userConnectionData
     {
         int socket;
+        int on;
         string name;
         pthread_t thread;
         User *ref;
@@ -34,7 +35,7 @@ public:
     };
 
     void newUserConnection(int socket);
-    void upload(string message, userConnectionData info);
+    void upload(string message, userConnectionData info, int forcePropagation = 0);
     void download(string data, userConnectionData info);
     void del(string filename, userConnectionData info);
     void listServer(userConnectionData info);

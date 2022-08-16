@@ -10,6 +10,7 @@ enum PROTOCOL_TYPE : short
 {
     DATA,
     UPLD,
+    UPLF,
     DWNL,
     DELT,
     LSSV,
@@ -36,7 +37,7 @@ tProtocol receiveProtocol(int socketfd);
 
 // TCP related methods and definitions
 int connectClient(string name, string srvrAdd, int srvrPort);
-bool upload(int socketfd, File *file);
+bool upload(int socketfd, File *file, string path, int forcePropagation = 0);
 void writeFile(string data, int socket, string path);
 
 string serializeFile(File *file);

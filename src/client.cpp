@@ -129,13 +129,13 @@ void *Client::clientLoop(void *param)
     }
     return nullptr;
 }
-void Client::uploadFile(string filepath)
+void Client::uploadFile(string filepath, int forcePropagation)
 {
     if (filepath.empty())
         cout << "Couldn't understand filename" << endl;
     File file(filepath);
 
-    if (!upload(socketfd, &file))
+    if (!upload(socketfd, &file, filepath, forcePropagation))
         throw runtime_error("Failed to send file to server");
 }
 
@@ -175,8 +175,6 @@ void Client::listServer()
 
 void Client::getServerList(string message)
 {
-    // tProtocol ;
-
     std::vector<File *> files = deserializePack(message);
 
     for (File *file : files) // Iterates throw each file

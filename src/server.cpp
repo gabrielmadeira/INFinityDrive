@@ -22,6 +22,7 @@ void User::newUserConnection(int socket)
     userConnectionsHash[socket].socket = socket;
     userConnectionsHash[socket].name = data.name;
     userConnectionsHash[socket].ref = this;
+    userConnectionsHash[socket].on = 1;
 
     if (pthread_create(&(userConnectionsHash[socket].thread), NULL,
                        userConnectionLoop, &(userConnectionsHash[socket])) != 0)
@@ -29,34 +30,18 @@ void User::newUserConnection(int socket)
     pthread_detach(userConnectionsHash[socket].thread);
 }
 
-void User::upload(string message, userConnectionData info)
+void User::upload(string message, userConnectionData info, int forcePropagation)
 {
     File *file = deserializeFile(message);
-
-    // tProtocol newMessage = receiveProtocol(info.socket);
-    // file->data = get<1>(newMessage);
-    /*
-    stringstream nmstream(get<1>(newMessage));
-    getline(nmstream, file->data, '|');
-    */
-    // deserializeFile(message);
-    //  cout << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->data << '|' << " end\n";
-
-    // file->write("./clients/" + info.name + "/" + file->name);
     string path = "./clients/" + info.name + "/" + file->name;
-
-    // RECEIVE ----------------------------
 
     receiveFile(path, info.socket, file->size);
 
-    // ---------------------------------------
-
-    for (auto &it : userConnectionsHash) // Deve percorrer pelas conecções e mandar para as outras máquinas do mesmo usuário
+    for (auto &it : userConnectionsHash)
     {
-        if ((it.first != info.socket) && (it.second.name == info.name))
+        if ((forcePropagation || it.first != info.socket) && (it.second.name == info.name) && (it.second.on == 1))
         {
             sendProtocol(it.first, message, UPLD);
-            // sendProtocol(it.first,get<1>(newMessage),DATA);
             cout << "SEND FILE SIZE: " << file->size << endl;
             sendFile(path, it.first);
         }
@@ -69,29 +54,22 @@ void User::download(string message, userConnectionData info)
     string path = "./clients/" + data.name + "/" + message;
 
     sendProtocol(info.socket, serializeFile(&file) + '|', DWNL);
-    // sendProtocol(info.socket, file.data, DATA);
     cout << "SEND FILE SIZE: " << file.data.size() << endl;
     sendFile(path, info.socket);
 }
 
 void User::del(string filename, userConnectionData info)
 {
-    // inicio seção crítica
-    // deletar arquivo
-    // cout << "file " << filename << " from user " << data.name << " deleted!\n";
-    // syncAllUserConnections() -> propagar para todos as conexões do usuário conectadas
-    // fim seção crítica
-
     string fullFilepath = "./clients/" + info.name + "/" + filename;
     if (fullFilepath.empty())
         cout << "Couldn't understand filename" << endl;
     else if (remove(fullFilepath.c_str()) != 0)
         cout << "Couldn't delete file" << endl;
 
-    for (auto &it : userConnectionsHash) // Deve percorrer pelas conecções e mandar para as outras máquinas do mesmo usuário
+    for (auto &it : userConnectionsHash)
     {
         cout << it.first << " " << data.socket << endl;
-        if ((it.first != info.socket) && (it.second.name == info.name))
+        if ((it.first != info.socket) && (it.second.name == info.name) && (it.second.on == 1))
             sendProtocol(it.first, filename, DELT);
     }
 }
@@ -114,9 +92,12 @@ void User::syncAllUserConnections()
     string message = serializePack(manager.getClientFiles());
     for (auto &it : userConnectionsHash)
     {
-        cout << it.first << " "; // first é a chave(ou numero do socket) e second o struct com os dados da conexão
-        sendProtocol(data.socket, message, LSSV);
-        // send(); // colocar uma thread no cliente para receber comandos do server
+        if (it.second.on == 1)
+        {
+            cout << it.first << " "; // first é a chave(ou numero do socket) e second o struct com os dados da conexão
+            sendProtocol(data.socket, message, LSSV);
+            // send(); // colocar uma thread no cliente para receber comandos do server
+        }
     }
     cout << "\n";
 }
@@ -144,27 +125,22 @@ void *User::userConnectionLoop(void *param)
     while (1)
     {
         tProtocol message = receiveProtocol(info.socket);
-        // if (n < 0)                                                                   adicionar no receive
-        // {
-        //     printf("%d ERROR reading from socket\n", info.socket);
-        //     break;
-        // }
-        // if (n == 0)
-        // {
-        //     printf("%d Disconnected\n", info.socket);
-        //     break;
-        // }
         if (get<0>(message) == ERRO)
+        {
+            (*info.ref).userConnectionsHash[info.socket].on = 0;
             break;
+        }
 
         printf("%d %s CMD received: %d %s\n", info.socket, info.name.c_str(), get<0>(message), get<1>(message).c_str());
-        // printf("%d %s CMD received: %d %s\n", (*info.ref).data.socket, (*info.ref).data.name.c_str(), get<0>(message),get<1>(message).c_str());
 
         string delimiter = "|";
         switch (get<0>(message))
         {
         case UPLD:
             (*info.ref).upload(get<1>(message), info);
+            break;
+        case UPLF:
+            (*info.ref).upload(get<1>(message), info, 1);
             break;
         case DWNL:
             (*info.ref).download(get<1>(message), info);

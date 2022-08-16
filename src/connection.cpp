@@ -16,7 +16,6 @@ using namespace std;
 string serializeFile(File *file)
 {
   stringstream filebuffer;
-  // filebuffer << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time;
   filebuffer << file->name << '|' << file->acc_time << '|' << file->chg_time << '|' << file->mod_time << '|' << file->size;
   return filebuffer.str();
 }
@@ -24,22 +23,6 @@ string serializeFile(File *file)
 File *deserializeFile(string message)
 {
   File *file = new File();
-  /*
-  vector<string> fullstream;
-  cout << message << endl;
-
-  stringstream mstream(message);
-  while(mstream.good()) {
-    string substr;
-    getline(mstream, substr, '|');
-    fullstream.push_back(substr);
-  }
-  file->name = fullstream.at(0);
-  file->acc_time = fullstream.at(1);
-  file->chg_time = fullstream.at(2);
-  file->mod_time = fullstream.at(3);
-  file->data = fullstream.at(4);
-  */
 
   stringstream mstream(message);
   getline(mstream, file->name, '|');
@@ -49,15 +32,6 @@ File *deserializeFile(string message)
   string temp;
   getline(mstream, temp, '|');
   file->size = stoi(temp);
-  /*
-  mstream >> file->acc_time;
-  mstream.seekg(ios::cur + 1);
-  mstream >> file->chg_time;
-  mstream.seekg(ios::cur + 1);
-  mstream >> file->mod_time;
-  mstream.seekg(ios::cur+1);
-  mstream >> file->data;
-  */
   return file;
 }
 
@@ -97,18 +71,13 @@ void sendFile(string path, int socket)
     char buffer[4096];
     while ((readBytes = fread(buffer, 1, sizeof(buffer), fp)) > 0)
     {
-      // cout << readBytes << "\n";
-      // cout << buffer << "\n";
       if (send(socket, buffer, readBytes, 0) != readBytes)
       {
         cout << "OUTTT READ\n";
-        // handleErrors();
-        // break;
         return;
       }
     }
     send(socket, buffer, 0, 0);
-    // close(socketfd);
   }
 }
 
@@ -128,12 +97,9 @@ void receiveFile(string path, int socket, int size)
     char buffer[BUFFER_SIZE];
     while ((readBytes = recv(socket, buffer, sizeof(buffer), 0)) > 0)
     {
-      // cout << buffer << "\n";
       if (fwrite(buffer, 1, readBytes, fp) != readBytes)
       {
         cout << "OUTTT WRITE\n";
-        // handleErrors();
-        // break;
         return;
       }
       chunk++;
@@ -147,23 +113,15 @@ void receiveFile(string path, int socket, int size)
   }
 }
 
-bool upload(int socketfd, File *file)
+bool upload(int socketfd, File *file, string path, int forcePropagation)
 {
-  // string msg = file->name + '|' + file->acc_time + '|' + file->chg_time + '|' + file->mod_time + '|';
+  PROTOCOL_TYPE protocol = forcePropagation ? UPLF : UPLD;
 
-  if (!sendProtocol(socketfd, serializeFile(file) + '|', UPLD))
+  if (!sendProtocol(socketfd, serializeFile(file) + '|', protocol))
     return false;
 
-  // SEND ----------------------------- TEST
-
-  string path = "./sync_dir/" + file->name;
   cout << "SEND FILE SIZE: " << file->size << endl;
   sendFile(path, socketfd);
-
-  // ---------------------------------
-
-  // if (!sendProtocol(socketfd, file->data, DATA))
-  //   return false;
 
   return true;
 }
@@ -171,8 +129,6 @@ bool upload(int socketfd, File *file)
 void writeFile(string data, int socket, string path)
 {
   File *file = deserializeFile(data);
-
-  // tProtocol filedata = receiveProtocol(socket);
 
   path += file->name;
   receiveFile(path, socket, file->size);
@@ -191,9 +147,6 @@ bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
   {
     buffer.type = type;
     buffer.chunk = i + 1;
-    // cout << "MESSAGE SUBSTR: " << message.substr(i * PAYLOAD_SIZE, PAYLOAD_SIZE).c_str() << "\n";
-    // const char *bufmsg = message.substr(i * PAYLOAD_SIZE, PAYLOAD_SIZE).c_str();
-    // cout << "MESSAGE BUFMSG: " << bufmsg << "\n";
     strncpy(buffer.payload, &bufmsg[i * PAYLOAD_SIZE], PAYLOAD_SIZE);
     cout << "BUFFER_PAYLOAD: " << buffer.payload << "\n";
     if (send(socketfd, &buffer, BUFFER_SIZE, 0) == -1)
@@ -270,23 +223,7 @@ string serializePack(vector<File *> pack)
   }
   return message;
 }
-/*
-bool getSyncDir(int socketfd)
-{
-  string filepath = filesystem::current_path().string() +"/sync_dir";
-  tProtocol sync_tuple;
-  File* file;
 
-  if(!sendProtocol(socketfd, "|", GSDR)) return false;
-
-  if (mkdir(filepath.c_str(), 0777) == -1)
-    cerr << "Error :  " << strerror(errno) << endl;
-  else cout << "sync_dir folder created";
-
-  sync_tuple = receiveProtocol(socketfd);
-  return deserializePack(get<1>(sync_tuple), filepath);
-}
-*/
 bool listServer(int socketfd, string username)
 {
   tProtocol listtuple;
@@ -294,7 +231,7 @@ bool listServer(int socketfd, string username)
     return false;
 
   listtuple = receiveProtocol(socketfd);
-  // lista todos os nomes no terminal
+
   string file;
   stringstream list(get<1>(listtuple));
   while (getline(list, file, '|'))

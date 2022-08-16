@@ -23,7 +23,7 @@ public:
     Client(string username, string srvrAdd, int srvrPort);
     ~Client();
     void downloadFile(string filename);
-    static void uploadFile(string filepath);
+    static void uploadFile(string filepath, int forcePropagation = 0);
     static void deleteFile(string filepath);
     static void deleteLocal(string filepath);
     static void listServer();
