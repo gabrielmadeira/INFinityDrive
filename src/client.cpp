@@ -11,203 +11,194 @@
 #include "connection.hpp"
 #include "file.hpp"
 
-
 using namespace std;
 
 Client::Client(string username, string srvrAdd, int srvrPort)
 {
-    name = username; 
+    name = username;
     this->srvrAdd = srvrAdd;
     this->srvrPort = srvrPort;
-    
+
     getSyncDir();
 }
 
-Client::~Client() { delete(syncdir); }
+Client::~Client() { delete (syncdir); }
 
 void Client::getSyncDir()
 {
-    string filepath = filesystem::current_path().string() +"/sync_dir";
-    tuple<PROTOCOL_TYPE, string> sync_tuple;
-    File* file;
+    filesystem::path filepath = filesystem::current_path();
+    string fpath = filepath.string() + "/sync_dir";
+    tProtocol sync_tuple;
+    File *file;
 
-    //cria diretório
-    if (mkdir(filepath.c_str(), 0777) == -1)//falta somar filpath
-        throw runtime_error("Failed to create sync_dir directory");
-    else
-        cout << "Directory sync_dir created";
+    if (!filesystem::exists(fpath))
+    {
+        if (mkdir(fpath.c_str(), 0777) == -1){
+            cout << "Failed to create sync_dir directory";
+            return;
+        }
+        else
+            cout << "Directory sync_dir created" << endl;
+    }
 
-    //Try connection
-    socketfd = connectClient(name, srvrAdd, srvrPort); 
-    if(socketfd == -1)
-        throw runtime_error("Couldn't connect to server");
-    string msg = name+'|';
-    if (!sendProtocol(socketfd, msg, LOGN))
-        throw runtime_error("Couldn't send machine info");
+    // Try connection
+    socketfd = connectClient(name, srvrAdd, srvrPort);
+    if (socketfd == -1){
+        cout << "Couldn't connect to server" << endl;
+        return;
+    }
+    if (!sendProtocol(socketfd, name, LOGN))
+        cout << "Couldn't send user info" << endl;
 
-    //Connection ok
+    // Connection ok
 
     syncdir = new SyncDir("./sync_dir");
 
     if (pthread_create(&syncDirID, NULL,
-                        syncDirLoop, NULL) != 0)
+                       syncDirLoop, NULL) != 0)
         printf("Failed to create SyncDir thread\n");
 
     if (pthread_create(&clientID, NULL,
-                        clientLoop, NULL) != 0)
+                       clientLoop, NULL) != 0)
         printf("Failed to create ClientLoop thread\n");
 }
 
-void * Client::syncDirLoop(void * param) {
-    while(true)
+void *Client::syncDirLoop(void *param)
+{
+    while (true)
     {
-        vector<pair<string,int>> diff = syncdir->sync();
-
-        for(pair<string,int> file : diff)
+        vector<pair<string, int>> diff = syncdir->sync();
+        if (serverUpdate)
         {
-            string name = "./sync_dir/" + file.first;
-            switch(file.second) {
-                case MODIFIED:
-                    cout << "File " << file.first << " was created" << endl;
-                    uploadFile(name);
-                    break;
-                case DELETED:
-                    cout << "File " << file.first << " was deleted" << endl;
-                    if(!sendProtocol(socketfd,file.first + '|',DELT))
-                        throw runtime_error("Failed to delete file");
-                    break;
-                case CREATED:
-                    cout << "File " << file.first << " was created" << endl;
-                    uploadFile(name);
-                    break;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            serverUpdate = false;
+            continue;
         }
+
+        for (pair<string, int> file : diff)
+        {
+            cout << file.first << " || " << file.second << endl;
+            string name = "./sync_dir/" + file.first;
+            switch (file.second)
+            {
+            case MODIFIED:
+                cout << "File " << file.first << " modified" << endl;
+                uploadFile(name);
+                break;
+            case DELETED:
+                cout << "File " << file.first << " deleted" << endl;
+                if (!sendProtocol(socketfd, file.first, DELT))
+                    cout << "Failed to delete file";
+                break;
+            case CREATED:
+                cout << "File " << file.first << " created" << endl;
+                uploadFile(name);
+                break;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     }
 }
 
-void * Client::clientLoop(void * param) {
-    // TODO: destruir UserConnection ao desconectar ou ocorrer erro
-
+void *Client::clientLoop(void *param)
+{
     protocol buffer;
     int n;
     while (1)
     {
-        tuple<PROTOCOL_TYPE, string> message = receiveProtocol(socketfd);
-        // if (n < 0)                                                                   adicionar no receive
-        // {                                        
-        //     printf("%d ERROR reading from socket\n", info.socket);
-        //     break;
-        // }
-        // if (n == 0)
-        // {
-        //     printf("%d Disconnected\n", info.socket);
-        //     break;
-        // }
+        tProtocol message = receiveProtocol(socketfd);
 
-        // CMDs in the format "|parameter1|parameter2|etc|"
+        if (get<0>(message) == ERRO)
+            break;
+
         switch (get<0>(message))
         {
-        case DWNL:  writeFile(get<1>(message));  break;
-        case DELT:  deleteFile(get<1>(message)); break;
-        case LSSV:  getServerList();             break;
-        case LSCL:  
-        case GSDR:
-        default:    cout << "Spooky behavior!" << endl;
+        case UPLD:
+            writeFile(get<1>(message), socketfd, "./sync_dir/");
+            serverUpdate = true;
+            break;
+        case DWNL:
+            writeFile(get<1>(message), socketfd, "./");
+            serverUpdate = true;
+            break;
+        case DELT:
+            serverUpdate = true;
+            deleteLocal(get<1>(message));
+            break;
+        case LSSV:
+            getServerList(get<1>(message));
+            break;
+        default:
+            cout << "Spooky behavior!" << endl;
         }
     }
     return nullptr;
 }
-void Client::uploadFile(string filepath) 
+void Client::uploadFile(string filepath, int forcePropagation)
 {
     if (filepath.empty())
         cout << "Couldn't understand filename" << endl;
-    cout << filepath << "\n";
     File file(filepath);
 
-    if (upload(socketfd, file))
-        throw runtime_error("Failed to send file to server");
+    if (!upload(socketfd, &file, filepath, forcePropagation))
+        cout << "Failed to send file to server";
 }
 
-void Client::downloadFile(string filepath)
+void Client::downloadFile(string filename)
 {
-    if (filepath.empty())
+    if (filename.empty())
         cout << "Couldn't understand filename" << endl;
 
-    File *newfile = (File *)download(socketfd, filepath);
-    if (!newfile)
-        cout << "No file found with name " + filepath << endl;
-    newfile->write(filepath);
+    if (!sendProtocol(socketfd, filename, DWNL))
+        cout << "Failed to download file";
 }
 
 void Client::deleteFile(string filepath)
 {
-    string fullFilepath = filesystem::current_path().string() +"/sync_dir/" + filepath;
-    if(filepath.empty()) cout << "Couldn't understand filename" << endl;
-    else if(remove(fullFilepath.c_str()) != 0)
-    {
-        cout << "Couldn't delete file" << endl;
-    }
+    deleteLocal(filepath);
+
+    if (!sendProtocol(socketfd, filepath, DELT))
+        cout << "Failed to delete file";
 }
 
-void Client::listClient()
+void Client::deleteLocal(string filepath)
 {
-    string fullFilepath = filesystem::current_path().string() +"/sync_dir";
-    SyncDir syncdir = SyncDir(fullFilepath);
-    vector<File *> files = syncdir.getFiles();
-
-    cout << "Name\t" << "\t\t\tLast Modified\t" << "\t\tLast Acessed\t" << "\t\tLast changed" << endl;
-    for(File * file : files) //Iterates throw each file
-    {
-        //Displays its metadata
-        tm * mod = localtime(&file->mod_time);
-        tm * acc = localtime(&file->acc_time);
-        tm * chg = localtime(&file->chg_time);
-        char buffer[3][32];
-        // Format: Mo, 15.06.2009 20:20:00
-        strftime(buffer[0], 32, "%a, %d.%m.%Y %H:%M:%S", mod);
-        strftime(buffer[1], 32, "%a, %d.%m.%Y %H:%M:%S", acc);
-        strftime(buffer[2], 32, "%a, %d.%m.%Y %H:%M:%S", chg);
-
-        cout << file->name << "\t\t" << buffer[0] << "\t\t" << buffer[1] << "\t\t" << buffer[2] << endl;
-    }
+    string fullFilepath = filesystem::current_path().string() + "/sync_dir/" + filepath;
+    if (filepath.empty())
+        cout << "Couldn't understand filename" << endl;
+    else if (remove(fullFilepath.c_str()) != 0)
+        cout << "Couldn't delete file" << endl;
 }
 
 void Client::listServer()
 {
-  string msg = "LIST";
-  tuple<PROTOCOL_TYPE, string> listtuple;
-  if(!sendProtocol(socketfd, msg, LSSV))
-    throw runtime_error("Failed to send file to server");
-
-  listtuple = receiveProtocol(socketfd);
-  //lista todos os nomes no terminal
-  cout<< "Arquivos do seu diretório:" << get<1>(listtuple) << endl;
+    string msg = "LIST";
+    tProtocol listtuple;
+    if (!sendProtocol(socketfd, msg, LSSV))
+        cout << "Failed to communicate with server" << endl;
 }
 
-void Client::getServerList() {
-    //TODO colocar while aqui
+void Client::getServerList(string message)
+{
+    std::vector<File *> files = deserializePack(message);
+
+    for (File *file : files) // Iterates throw each file
+    {
+        cout << file->name << "\t\t" << file->mod_time << "\t\t" << file->acc_time << "\t\t" << file->chg_time << endl;
+    }
 }
 
 void Client::listClient()
 {
-    string fullFilepath = filesystem::current_path().string() +"/sync_dir";
+    string fullFilepath = filesystem::current_path().string() + "/sync_dir";
     SyncDir syncdir = SyncDir(fullFilepath);
     vector<File *> files = syncdir.getFiles();
 
-    cout << "Name\t" << "\t\t\tLast Modified\t" << "\t\tLast Acessed\t" << "\t\tLast changed" << endl;
-    for(File * file : files) //Iterates throw each file
+    cout << "Name\t"
+         << "\t\t\tLast Modified\t"
+         << "\t\tLast Acessed\t"
+         << "\t\tLast changed" << endl;
+    for (File *file : files) // Iterates throw each file
     {
-        //Displays its metadata
-        tm * mod = localtime(&file->mod_time);
-        tm * acc = localtime(&file->acc_time);
-        tm * chg = localtime(&file->chg_time);
-        char buffer[3][32];
-        // Format: Mo, 15.06.2009 20:20:00
-        strftime(buffer[0], 32, "%a, %d.%m.%Y %H:%M:%S", mod);
-        strftime(buffer[1], 32, "%a, %d.%m.%Y %H:%M:%S", acc);
-        strftime(buffer[2], 32, "%a, %d.%m.%Y %H:%M:%S", chg);
-
-        cout << file->name << "\t\t" << buffer[0] << "\t\t" << buffer[1] << "\t\t" << buffer[2] << endl;
+        cout << file->name << "\t\t" << file->mod_time << "\t\t" << file->acc_time << "\t\t" << file->chg_time << endl;
     }
 }

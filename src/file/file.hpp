@@ -2,25 +2,28 @@
 #include <string>
 using namespace std;
 
-class File {
-    public:
-        string name;
-        string data;
-        /* Metadata */
+class File
+{
+public:
+    string name;
+    string data;
+    /* Metadata */
 
-        // Modification time
-        time_t mod_time;
+    // Modification time
+    string mod_time;
 
-        // Access time
-        time_t acc_time;
-        
-        // Change or Creation time
-        time_t chg_time;
+    // Access time
+    string acc_time;
 
-        File();
-        File(string filePath);
-        void read(string filePath);
-        void write(string filePath);
-        void updateMetadata(string filePath);
-        ~File();
+    // Change or Creation time
+    string chg_time;
+
+    int size;
+
+    File();
+    File(string filePath);
+    void read(string filePath);
+    void write(string filePath);
+    void updateMetadata(string filePath);
+    ~File();
 };

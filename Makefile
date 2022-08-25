@@ -3,19 +3,19 @@ DIR_BIN=$(DIR_ROOT)/bin
 DIR_SRC=$(DIR_ROOT)/src
 DIR_FLE=$(DIR_SRC)/file
 
-CPPS=$(DIR_SRC)/connection.cpp $(DIR_FLE)/file.cpp $(DIR_FLE)/filemanagement.cpp  $(DIR_FLE)/syncdir.cpp
+CPPS=$(DIR_SRC)/connection.cpp $(DIR_FLE)/file.cpp $(DIR_FLE)/filemanager.cpp  $(DIR_FLE)/syncdir.cpp
 
 CC=g++
 EXE=.exe
 DEBUGGER=gdb
-FLAGS= -std=c++17 -lpthread -I$(DIR_SRC) -I$(DIR_FLE)
+FLAGS= -std=c++17 -pthread -I$(DIR_SRC) -I$(DIR_FLE)
 
 PORT=4000
 ADDR=127.0.0.1
 USERNAME=roberto
 
 s: serverc
-	$(DIR_BIN)/server$(EXE)
+	$(DIR_BIN)/server$(EXE) $(PORT)
 
 c: clientc
 	$(DIR_BIN)/client$(EXE) $(USERNAME) $(ADDR) $(PORT)

@@ -12,28 +12,33 @@
 using namespace std;
 // mutex mtx;
 
-
 class User
 {
     struct userConnectionData
     {
         int socket;
+        int on;
         string name;
         pthread_t thread;
         User *ref;
     };
+
 public:
     userConnectionData data;
     unordered_map<int, userConnectionData> userConnectionsHash;
 
     User() {}
-    User(string username){ data.name = username; }
+    User(string username, int newSocket)
+    {
+        data.name = username;
+        data.socket = newSocket;
+    };
 
     void newUserConnection(int socket);
-    bool upload();
-    void download();
-    void del(string filename);
-    void listServer();
+    void upload(string message, userConnectionData info, int forcePropagation = 0);
+    void download(string data, userConnectionData info);
+    void del(string filename, userConnectionData info);
+    void listServer(userConnectionData info);
     void syncAllUserConnections();
     static void *userConnectionLoop(void *param);
 };
@@ -42,19 +47,18 @@ class Server
 {
 public:
     unordered_map<string, User> usersHash;
-    // TODO: recuperar usuários existentes do disco
 
     int serverSocket, newSocket;
     struct sockaddr_in serverAddr;
     struct sockaddr_storage serverStorage;
 
     socklen_t addr_size;
-    Server()
+    Server(int port = 4000)
     {
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
         serverAddr.sin_addr.s_addr = INADDR_ANY;
         serverAddr.sin_family = AF_INET;
-        serverAddr.sin_port = htons(4000);
+        serverAddr.sin_port = htons(port);
 
         bind(serverSocket,
              (struct sockaddr *)&serverAddr,
