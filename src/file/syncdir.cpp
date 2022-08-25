@@ -64,7 +64,7 @@ vector<File *> SyncDir::getFiles() {
     vector<File *> newFiles;
 
     if( stat( this->path.c_str(), &info ) != 0 || !(info.st_mode & S_IFDIR))
-        throw runtime_error(string("Error: cannot access sync_dir"));
+        cout << "Error: cannot access sync_dir" << endl;
     else 
     {
         for (const auto & entry : filesystem::directory_iterator(this->path.c_str()))

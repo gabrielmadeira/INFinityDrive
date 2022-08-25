@@ -116,8 +116,10 @@ void *User::userConnectionLoop(void *param)
 
     if (!filesystem::exists(fpath))
     {
-        if (mkdir(fpath.c_str(), 0777) == -1)
-            throw runtime_error("Failed to create " + info.name + " directory");
+        if (mkdir(fpath.c_str(), 0777) == -1){
+            cout << "Failed to create " + info.name + " directory";
+            return nullptr;
+        }
         else
             cout << "Directory " + info.name + " created" << endl;
     }

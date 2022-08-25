@@ -5,7 +5,7 @@
 
 using namespace std;
 
-regex upl("upload ([a-zA-Z_/\\.]+)"), dow("download ([a-zA-Z_/\\.]+)"), del("delete ([a-zA-Z_/\\.]+)"),
+regex upl("upload ([a-zA-Z0-9_/\\.]+)"), dow("download ([a-zA-Z0-9_/\\.]+)"), del("delete ([a-zA-Z0-9_/\\.]+)"),
     lsr("list_server"), lcl("list_client"), gsd("get_sync_dir"), ext("exit");
 
 int main(int argc, char *argv[])

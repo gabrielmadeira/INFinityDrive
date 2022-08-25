@@ -33,18 +33,22 @@ void Client::getSyncDir()
 
     if (!filesystem::exists(fpath))
     {
-        if (mkdir(fpath.c_str(), 0777) == -1)
-            throw runtime_error("Failed to create sync_dir directory");
+        if (mkdir(fpath.c_str(), 0777) == -1){
+            cout << "Failed to create sync_dir directory";
+            return;
+        }
         else
             cout << "Directory sync_dir created" << endl;
     }
 
     // Try connection
     socketfd = connectClient(name, srvrAdd, srvrPort);
-    if (socketfd == -1)
-        throw runtime_error("Couldn't connect to server");
+    if (socketfd == -1){
+        cout << "Couldn't connect to server" << endl;
+        return;
+    }
     if (!sendProtocol(socketfd, name, LOGN))
-        throw runtime_error("Couldn't send user info");
+        cout << "Couldn't send user info" << endl;
 
     // Connection ok
 
@@ -83,7 +87,7 @@ void *Client::syncDirLoop(void *param)
             case DELETED:
                 cout << "File " << file.first << " deleted" << endl;
                 if (!sendProtocol(socketfd, file.first, DELT))
-                    throw runtime_error("Failed to delete file");
+                    cout << "Failed to delete file";
                 break;
             case CREATED:
                 cout << "File " << file.first << " created" << endl;
@@ -136,7 +140,7 @@ void Client::uploadFile(string filepath, int forcePropagation)
     File file(filepath);
 
     if (!upload(socketfd, &file, filepath, forcePropagation))
-        throw runtime_error("Failed to send file to server");
+        cout << "Failed to send file to server";
 }
 
 void Client::downloadFile(string filename)
@@ -145,7 +149,7 @@ void Client::downloadFile(string filename)
         cout << "Couldn't understand filename" << endl;
 
     if (!sendProtocol(socketfd, filename, DWNL))
-        throw runtime_error("Failed to download file");
+        cout << "Failed to download file";
 }
 
 void Client::deleteFile(string filepath)
@@ -153,7 +157,7 @@ void Client::deleteFile(string filepath)
     deleteLocal(filepath);
 
     if (!sendProtocol(socketfd, filepath, DELT))
-        throw runtime_error("Failed to delete file");
+        cout << "Failed to delete file";
 }
 
 void Client::deleteLocal(string filepath)
@@ -170,7 +174,7 @@ void Client::listServer()
     string msg = "LIST";
     tProtocol listtuple;
     if (!sendProtocol(socketfd, msg, LSSV))
-        throw runtime_error("Failed to communicate with server");
+        cout << "Failed to communicate with server" << endl;
 }
 
 void Client::getServerList(string message)
