@@ -53,12 +53,12 @@ public:
     struct sockaddr_storage serverStorage;
 
     socklen_t addr_size;
-    Server()
+    Server(int port = 4000)
     {
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
         serverAddr.sin_addr.s_addr = INADDR_ANY;
         serverAddr.sin_family = AF_INET;
-        serverAddr.sin_port = htons(4000);
+        serverAddr.sin_port = htons(port);
 
         bind(serverSocket,
              (struct sockaddr *)&serverAddr,

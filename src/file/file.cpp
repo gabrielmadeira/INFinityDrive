@@ -32,7 +32,7 @@ void File::read(string filePath)
         updateMetadata(filePath);
     }
     else
-        throw runtime_error(string("Error: ") + strerror(errno));
+        cout << "Error: " << strerror(errno) << endl;
     size = data.size();
 }
 
@@ -45,7 +45,7 @@ void File::write(string filePath)
         out.close(); // close file handle
     }
     else
-        throw runtime_error(string("Error: ") + strerror(errno));
+        cout << "Error: " << strerror(errno) << endl;
 }
 
 void File::updateMetadata(string filePath)
@@ -71,5 +71,5 @@ void File::updateMetadata(string filePath)
         size = data.size();
     }
     else
-        throw runtime_error(string("Error: No such file or directory"));
+        cout << "Error: No such file or directory" << endl;
 }

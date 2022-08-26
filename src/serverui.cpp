@@ -1,8 +1,12 @@
 #include "server.hpp"
 #include <sys/stat.h>
 
-int main()
+int main(int argc, char *argv[])
 {   
+    if (argc != 2)
+        throw runtime_error("Wrong use of server! Expected <port>");
+    int port = stoi(argv[1]);
+
     filesystem::path filepath = filesystem::current_path();
     string fpath = filepath.string() + "/clients";
 
@@ -14,7 +18,7 @@ int main()
             cout << "Directory clients created" << endl;
     }
 
-    Server server;
+    Server server(port);
     server.serverLoop();
     return 0;
 }

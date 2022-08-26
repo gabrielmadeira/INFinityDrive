@@ -66,7 +66,7 @@ void sendFile(string path, int socket)
   if (FILE *fp = fopen(path.c_str(), "rb"))
   {
     size_t readBytes;
-    char buffer[4096];
+    char buffer[256];
     while ((readBytes = fread(buffer, 1, sizeof(buffer), fp)) > 0)
     {
       if (send(socket, buffer, readBytes, 0) != readBytes)
@@ -80,12 +80,13 @@ void sendFile(string path, int socket)
 
 void receiveFile(string path, int socket, int size)
 {
-  int BUFFER_SIZE = 4096;
+  int BUFFER_SIZE = 256;
 
   int chunk = 0;
   int msgsize = size + (BUFFER_SIZE - size % BUFFER_SIZE);
   int total_chunks = msgsize / BUFFER_SIZE;
 
+  int totalReadyBytes = 0;
   if (FILE *fp = fopen(path.c_str(), "wb"))
   {
     size_t readBytes;
@@ -96,8 +97,8 @@ void receiveFile(string path, int socket, int size)
       {
         return;
       }
-      chunk++;
-      if (chunk >= total_chunks)
+      totalReadyBytes += readBytes;
+      if (totalReadyBytes >= size)
       {
         break;
       }

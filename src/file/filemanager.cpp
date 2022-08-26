@@ -11,8 +11,10 @@ void FileManager::loadClientFiles(string username) {
     string path = "./clients/" + username; 
     this->username = username;
 
-    if( stat( path.c_str(), &info ) != 0 || !(info.st_mode & S_IFDIR))
-        throw runtime_error(string("Error: cannot access client "+username+" data folder"));
+    if( stat( path.c_str(), &info ) != 0 || !(info.st_mode & S_IFDIR)){
+        cout << "Error: cannot access client "+username+" data folder" << endl;
+        return;
+    }
     else 
     {
         for (const auto & entry : filesystem::directory_iterator(path.c_str()))
