@@ -42,7 +42,6 @@ void User::upload(string message, userConnectionData info, int forcePropagation)
         if ((forcePropagation || it.first != info.socket) && (it.second.name == info.name) && (it.second.on == 1))
         {
             sendProtocol(it.first, message, UPLD);
-            cout << "SEND FILE SIZE: " << file->size << endl;
             sendFile(path, it.first);
         }
     }
@@ -54,7 +53,6 @@ void User::download(string message, userConnectionData info)
     string path = "./clients/" + data.name + "/" + message;
 
     sendProtocol(info.socket, serializeFile(&file) + '|', DWNL);
-    cout << "SEND FILE SIZE: " << file.data.size() << endl;
     sendFile(path, info.socket);
 }
 
@@ -68,7 +66,6 @@ void User::del(string filename, userConnectionData info)
 
     for (auto &it : userConnectionsHash)
     {
-        cout << it.first << " " << data.socket << endl;
         if ((it.first != info.socket) && (it.second.name == info.name) && (it.second.on == 1))
             sendProtocol(it.first, filename, DELT);
     }
@@ -96,7 +93,6 @@ void User::syncAllUserConnections()
         {
             cout << it.first << " "; // first é a chave(ou numero do socket) e second o struct com os dados da conexão
             sendProtocol(data.socket, message, LSSV);
-            // send(); // colocar uma thread no cliente para receber comandos do server
         }
     }
     cout << "\n";
@@ -133,9 +129,6 @@ void *User::userConnectionLoop(void *param)
             break;
         }
 
-        printf("%d %s CMD received: %d %s\n", info.socket, info.name.c_str(), get<0>(message), get<1>(message).c_str());
-
-        string delimiter = "|";
         switch (get<0>(message))
         {
         case UPLD:
@@ -155,7 +148,7 @@ void *User::userConnectionLoop(void *param)
             break;
         case GSDR:
             (*info.ref).syncAllUserConnections();
-            break; // Not needed
+            break;
         default:
             cout << "Spooky behavior!" << endl;
         }
@@ -172,7 +165,6 @@ void Server::serverLoop()
                            &addr_size);
 
         tProtocol user = receiveProtocol(newSocket);
-        cout << "CON:" << get<0>(user) << "-" << get<1>(user) << "\n";
         if (!usersHash.count(get<1>(user)))
         {
             usersHash[get<1>(user)] = User(get<1>(user), newSocket);
