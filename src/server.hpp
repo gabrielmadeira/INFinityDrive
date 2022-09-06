@@ -26,12 +26,14 @@ class User
 public:
     userConnectionData data;
     unordered_map<int, userConnectionData> userConnectionsHash;
+    vector<int> *backupSocket;
 
     User() {}
-    User(string username, int newSocket)
+    User(string username, int newSocket, vector<int> *backup)
     {
         data.name = username;
         data.socket = newSocket;
+        backupSocket = backup;
     };
 
     void newUserConnection(int socket);
@@ -48,17 +50,22 @@ class Server
 public:
     unordered_map<string, User> usersHash;
 
-    int serverSocket, newSocket;
+    int serverSocket, newSocket, backup;
     struct sockaddr_in serverAddr;
     struct sockaddr_storage serverStorage;
+    vector<int> backupId;
+    vector<string> backupIP;
+    vector<int> backupPort;
+    vector<int> backupSocket;
 
     socklen_t addr_size;
-    Server(int port = 4000)
+    Server(int port = 4000, int backupParam)
     {
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
         serverAddr.sin_addr.s_addr = INADDR_ANY;
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_port = htons(port);
+        backup = backupParam;
 
         bind(serverSocket,
              (struct sockaddr *)&serverAddr,
@@ -73,4 +80,5 @@ public:
     }
 
     void serverLoop();
+    void backupRole();
 };

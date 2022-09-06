@@ -45,6 +45,12 @@ void User::upload(string message, userConnectionData info, int forcePropagation)
             sendFile(path, it.first);
         }
     }
+    for (auto socket : (*backupSocket))
+    {
+        sendProtocol(socket, info.name, DATA);
+        sendProtocol(socket, message, UPLD);
+        sendFile(path, socket);
+    }
 }
 
 void User::download(string message, userConnectionData info)
@@ -68,6 +74,11 @@ void User::del(string filename, userConnectionData info)
     {
         if ((it.first != info.socket) && (it.second.name == info.name) && (it.second.on == 1))
             sendProtocol(it.first, filename, DELT);
+    }
+    for (auto socket : (*backupSocket))
+    {
+        sendProtocol(socket, info.name, DATA);
+        sendProtocol(socket, filename, DELT);
     }
 }
 
@@ -112,7 +123,8 @@ void *User::userConnectionLoop(void *param)
 
     if (!filesystem::exists(fpath))
     {
-        if (mkdir(fpath.c_str(), 0777) == -1){
+        if (mkdir(fpath.c_str(), 0777) == -1)
+        {
             cout << "Failed to create " + info.name + " directory";
             return nullptr;
         }
@@ -158,6 +170,26 @@ void *User::userConnectionLoop(void *param)
 
 void Server::serverLoop()
 {
+    // initialize backup servers
+
+    for (int i = 0; i < backupId.size(); i++)
+    {
+        if (backupId == backup)
+        {
+            // remove from vector
+        }
+    }
+    for (int i = 0; i < backupId.size(); i++)
+    {
+        int socket = connectClient("backup", backupIP[i], backupPort[i]);
+        if (socket == -1)
+        {
+            cout << "Error connecting to backup server!\n";
+            continue;
+        }
+        backupSocket.push_back(socketfd);
+    }
+
     while (1)
     {
         newSocket = accept(serverSocket,
@@ -167,9 +199,57 @@ void Server::serverLoop()
         tProtocol user = receiveProtocol(newSocket);
         if (!usersHash.count(get<1>(user)))
         {
-            usersHash[get<1>(user)] = User(get<1>(user), newSocket);
+            usersHash[get<1>(user)] = User(get<1>(user), newSocket, &backupSocket);
         }
         cout << "Connection #" << newSocket << " from user " << get<1>(user) << "\n";
         usersHash[get<1>(user)].newUserConnection(newSocket);
     }
+}
+
+void Server::backupRole()
+{
+
+    // start thread backup ring receive
+
+    int primarySocket;
+    primarySocket = accept(serverSocket,
+                           (struct sockaddr *)&serverStorage,
+                           &addr_size);
+
+    // tProtocol clients = receiveProtocol(primarySocket);
+    // for (clients)
+    // {
+    //     primaryClients.push_back(get<1>(message));
+    // }
+    // tProtocol backups = receiveProtocol(primarySocket);
+
+    while (1)
+    {
+
+        tProtocol user = receiveProtocol(primarySocket);
+        if (get<0>(user) == ERRO)
+        {
+            // PRIMARY BROKE
+            break;
+        }
+        if (!usersHash.count(get<1>(user)))
+        {
+            usersHash[get<1>(user)] = User(get<1>(user), newSocket);
+        }
+
+        tProtocol message = receiveProtocol(primarySocket);
+        switch (get<0>(message))
+        {
+        case UPLD:
+            usersHash[get<1>(user)].upload(get<1>(message), info);
+            break;
+        case DELT:
+            usersHash[get<1>(user)].del(get<1>(message), info);
+            break;
+        default:
+            cout << "Spooky behavior!" << endl;
+        }
+    }
+
+    // backup ring send
 }
