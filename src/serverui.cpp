@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     server.backupIP = backupIP;
     server.backupPort = backupPort;
 
-    while (server.backupId)
+    while (!server.isLeader)
     {
         server.backupRole();
     }

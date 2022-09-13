@@ -14,6 +14,7 @@ using namespace std;
 
 class User
 {
+public:
     struct userConnectionData
     {
         int socket;
@@ -25,7 +26,7 @@ class User
 
 public:
     userConnectionData data;
-    unordered_map<int, userConnectionData> userConnectionsHash;
+    unordered_map<int, userConnectionData> userConnectionsHash = unordered_map<int,userConnectionData>();
     vector<int> *backupSocket;
 
     User() {}
@@ -48,6 +49,8 @@ public:
 class Server
 {
 public:
+    bool isLeader = false;
+
     unordered_map<string, User> usersHash;
 
     int serverSocket, newSocket, backup;
@@ -59,13 +62,15 @@ public:
     vector<int> backupSocket;
 
     socklen_t addr_size;
-    Server(int port = 4000, int backupParam)
+    Server(int port = 4000, int backupParam = 0)
     {
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
         serverAddr.sin_addr.s_addr = INADDR_ANY;
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_port = htons(port);
         backup = backupParam;
+        if(backupParam == 0)
+            isLeader = true;
 
         bind(serverSocket,
              (struct sockaddr *)&serverAddr,

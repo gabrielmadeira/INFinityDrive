@@ -45,6 +45,7 @@ void User::upload(string message, userConnectionData info, int forcePropagation)
             sendFile(path, it.first);
         }
     }
+
     for (auto socket : (*backupSocket))
     {
         sendProtocol(socket, info.name, DATA);
@@ -135,6 +136,7 @@ void *User::userConnectionLoop(void *param)
     while (1)
     {
         tProtocol message = receiveProtocol(info.socket);
+
         if (get<0>(message) == ERRO)
         {
             (*info.ref).userConnectionsHash[info.socket].on = 0;
@@ -174,9 +176,9 @@ void Server::serverLoop()
 
     for (int i = 0; i < backupId.size(); i++)
     {
-        if (backupId == backup)
+        if (backupId[i] == backup)
         {
-            // remove from vector
+            backupId.erase(backupId.begin()+i);
         }
     }
     for (int i = 0; i < backupId.size(); i++)
@@ -187,7 +189,7 @@ void Server::serverLoop()
             cout << "Error connecting to backup server!\n";
             continue;
         }
-        backupSocket.push_back(socketfd);
+        backupSocket.push_back(socket);
     }
 
     while (1)
@@ -216,6 +218,9 @@ void Server::backupRole()
                            (struct sockaddr *)&serverStorage,
                            &addr_size);
 
+    cout << "Succesfully connected to main server" << endl;
+
+
     // tProtocol clients = receiveProtocol(primarySocket);
     // for (clients)
     // {
@@ -227,6 +232,7 @@ void Server::backupRole()
     {
 
         tProtocol user = receiveProtocol(primarySocket);
+
         if (get<0>(user) == ERRO)
         {
             // PRIMARY BROKE
@@ -234,17 +240,19 @@ void Server::backupRole()
         }
         if (!usersHash.count(get<1>(user)))
         {
-            usersHash[get<1>(user)] = User(get<1>(user), newSocket);
+            usersHash[get<1>(user)] = User(get<1>(user), primarySocket,new vector<int>());
         }
 
         tProtocol message = receiveProtocol(primarySocket);
+
+
         switch (get<0>(message))
         {
         case UPLD:
-            usersHash[get<1>(user)].upload(get<1>(message), info);
+            usersHash[get<1>(user)].upload(get<1>(message), usersHash[get<1>(user)].data);
             break;
         case DELT:
-            usersHash[get<1>(user)].del(get<1>(message), info);
+            usersHash[get<1>(user)].del(get<1>(message), usersHash[get<1>(user)].data);
             break;
         default:
             cout << "Spooky behavior!" << endl;
