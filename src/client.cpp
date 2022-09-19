@@ -88,6 +88,7 @@ void *Client::syncDirLoop(void *param)
         for (pair<string, int> file : diff)
         {
             string name = "./sync_dir/" + file.first;
+
             switch (file.second)
             {
             case MODIFIED:

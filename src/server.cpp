@@ -6,6 +6,8 @@
 #include <arpa/inet.h>
 
 // For threading, link with lpthread
+#define Define_CurrentDir getcwd
+
 #include <pthread.h>
 #include <semaphore.h>
 #include <sys/socket.h>
@@ -107,18 +109,22 @@ void *User::userConnectionLoop(void *param)
     protocol buffer;
     int n;
     // Creates directory for client if doesn't exist
-    filesystem::path filepath = filesystem::current_path();
-    string fpath = filepath.string() + "/clients/" + info.name;
+    char LOCAL_DIR[1000];
 
-    if (!filesystem::exists(fpath))
-    {
-        if (mkdir(fpath.c_str(), 0777) == -1){
-            cout << "Failed to create " + info.name + " directory";
-            return nullptr;
+    if (!Define_CurrentDir(LOCAL_DIR, sizeof(LOCAL_DIR)))
+        {
+     	   return nullptr;
         }
-        else
-            cout << "Directory " + info.name + " created" << endl;
-    }
+    else  
+     { 
+       string fpath = string(LOCAL_DIR) + "/clients/" + info.name;
+       if(mkdir(fpath.c_str(), 0777) == -1)
+	   //throw runtime_error("Failed to create clients directory or directory already exists");
+	   cout << "Failed to create client directory or directory already exists" << endl;
+       else
+	   cout << "Directory " + info.name + " created" << endl;
+     }
+
 
     while (1)
     {

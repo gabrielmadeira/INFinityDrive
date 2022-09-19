@@ -69,7 +69,7 @@ vector<File *> SyncDir::getFiles() {
     
         while ((ent = readdir (dir)) != NULL) {
                File * file = new File(); 
-               file->updateMetadata(this->path); //é ESSE O PATH CERTO???
+               file->updateMetadata(ent->d_name); //é ESSE O PATH CERTO???
                newFiles.push_back(file);
     }
     closedir (dir);
