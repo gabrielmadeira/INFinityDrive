@@ -10,12 +10,13 @@ regex upl("upload ([a-zA-Z0-9_/\\.]+)"), dow("download ([a-zA-Z0-9_/\\.]+)"), de
 
 int main(int argc, char *argv[])
 {
-    if (argc != 4)
-        throw runtime_error("Wrong use of client! Expected <username> <server_ip> <port>");
-    string username = argv[1], srvrAdd = argv[2];
-    int srvrPort = stoi(argv[3]);
+    if (argc != 5)
+        throw runtime_error("Wrong use of client! Expected <username> <client port> <server_ip> <port>");
+    string username = argv[1], srvrAdd = argv[3];
+    int clientPort = stoi(argv[2]);
+    int srvrPort = stoi(argv[4]);
 
-    Client newClient(username, srvrAdd, srvrPort);
+    Client newClient(username, clientPort, srvrAdd, srvrPort);
 
     string cmdline;
     smatch cmdarg;

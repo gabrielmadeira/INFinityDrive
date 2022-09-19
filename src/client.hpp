@@ -15,12 +15,15 @@ class Client
 private:
     string srvrAdd;
     int srvrPort;
+    int port;
     pthread_t syncDirID, clientID;
+    int syncDirLoopActive = 0;
+    int connected = 0;
 
 public:
     string name;
 
-    Client(string username, string srvrAdd, int srvrPort);
+    Client(string username, int clientPort, string srvrAdd, int srvrPort);
     ~Client();
     void downloadFile(string filename);
     static void uploadFile(string filepath, int forcePropagation = 0);

@@ -26,7 +26,7 @@ public:
 
 public:
     userConnectionData data;
-    unordered_map<int, userConnectionData> userConnectionsHash = unordered_map<int,userConnectionData>();
+    unordered_map<int, userConnectionData> userConnectionsHash = unordered_map<int, userConnectionData>();
     vector<int> *backupSocket;
 
     User() {}
@@ -53,13 +53,15 @@ public:
 
     unordered_map<string, User> usersHash;
 
-    int serverSocket, newSocket, backup;
+    int serverSocket, newSocket, backup, serverPort;
     struct sockaddr_in serverAddr;
     struct sockaddr_storage serverStorage;
     vector<int> backupId;
     vector<string> backupIP;
     vector<int> backupPort;
     vector<int> backupSocket;
+    vector<string> clientIP;
+    vector<int> clientPort;
 
     socklen_t addr_size;
     Server(int port = 4000, int backupParam = 0)
@@ -68,8 +70,9 @@ public:
         serverAddr.sin_addr.s_addr = INADDR_ANY;
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_port = htons(port);
+        serverPort = port;
         backup = backupParam;
-        if(backupParam == 0)
+        if (backupParam == 0)
             isLeader = true;
 
         bind(serverSocket,

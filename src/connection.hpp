@@ -17,6 +17,7 @@ enum PROTOCOL_TYPE : short
     LSCL,
     GSDR,
     LOGN,
+    CLT,
     ERRO
 };
 static int BUFFER_SIZE = PAYLOAD_SIZE + sizeof(PROTOCOL_TYPE) + 2 * sizeof(uint16_t);

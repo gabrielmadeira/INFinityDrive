@@ -11,13 +11,17 @@
 #include "connection.hpp"
 #include "file.hpp"
 
+// inet_addr
+#include <arpa/inet.h>
+
 using namespace std;
 
-Client::Client(string username, string srvrAdd, int srvrPort)
+Client::Client(string username, int clientPort, string srvrAdd, int srvrPort)
 {
     name = username;
     this->srvrAdd = srvrAdd;
     this->srvrPort = srvrPort;
+    this->port = clientPort;
 
     getSyncDir();
 }
@@ -33,7 +37,8 @@ void Client::getSyncDir()
 
     if (!filesystem::exists(fpath))
     {
-        if (mkdir(fpath.c_str(), 0777) == -1){
+        if (mkdir(fpath.c_str(), 0777) == -1)
+        {
             cout << "Failed to create sync_dir directory";
             return;
         }
@@ -43,29 +48,37 @@ void Client::getSyncDir()
 
     // Try connection
     socketfd = connectClient(name, srvrAdd, srvrPort);
-    if (socketfd == -1){
+    if (socketfd == -1)
+    {
         cout << "Couldn't connect to server" << endl;
         return;
     }
     if (!sendProtocol(socketfd, name, LOGN))
         cout << "Couldn't send user info" << endl;
 
+    sendProtocol(socketfd, to_string(port), DATA);
+
     cout << "Client Connected" << endl;
     // Connection ok
+    connected = 1;
 
     syncdir = new SyncDir("./sync_dir");
 
-    if (pthread_create(&syncDirID, NULL,
-                       syncDirLoop, NULL) != 0)
-        printf("Failed to create SyncDir thread\n");
-
+    if (!syncDirLoopActive)
+    {
+        if (pthread_create(&syncDirID, NULL,
+                           syncDirLoop, this) != 0)
+            printf("Failed to create SyncDir thread\n");
+        syncDirLoopActive = 1;
+    }
     if (pthread_create(&clientID, NULL,
-                       clientLoop, NULL) != 0)
+                       clientLoop, this) != 0)
         printf("Failed to create ClientLoop thread\n");
 }
 
 void *Client::syncDirLoop(void *param)
 {
+    Client *ref = (Client *)param;
     while (true)
     {
         vector<pair<string, int>> diff = syncdir->sync();
@@ -96,11 +109,16 @@ void *Client::syncDirLoop(void *param)
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        while (!ref->connected)
+        { // PRIMARY BROKE
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        }
     }
 }
 
 void *Client::clientLoop(void *param)
 {
+    Client *ref = (Client *)param;
     protocol buffer;
     int n;
     while (1)
@@ -108,7 +126,51 @@ void *Client::clientLoop(void *param)
         tProtocol message = receiveProtocol(socketfd);
 
         if (get<0>(message) == ERRO)
+        {
+            // PRIMARY BROKE
+            // wait for new leader and then call getSyncDir
+            ref->connected = 0;
+
+            struct sockaddr_in tempClientAddr;
+            struct sockaddr_storage tempClientStorage;
+            socklen_t addr_size;
+            int tempClientSocket = socket(AF_INET, SOCK_STREAM, 0);
+            tempClientAddr.sin_addr.s_addr = INADDR_ANY;
+            tempClientAddr.sin_family = AF_INET;
+            tempClientAddr.sin_port = htons(ref->port);
+
+            bind(tempClientSocket,
+                 (struct sockaddr *)&tempClientAddr,
+                 sizeof(tempClientAddr));
+
+            addr_size = sizeof(tempClientStorage);
+
+            if (listen(tempClientSocket, 50) == 0)
+                printf("Listening: waiting for new leader connection\n");
+            else
+                printf("Error\n");
+
+            int newLeaderSocket = accept(tempClientSocket,
+                                         (struct sockaddr *)&tempClientStorage,
+                                         &addr_size);
+
+            struct sockaddr_in *pV4Addr = (struct sockaddr_in *)&tempClientStorage;
+            struct in_addr ipAddr = pV4Addr->sin_addr;
+
+            char ipNewLeader[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &ipAddr, ipNewLeader, INET_ADDRSTRLEN);
+
+            ref->srvrAdd = ipNewLeader;
+            tProtocol newLeaderMessage = receiveProtocol(newLeaderSocket);
+            ref->srvrPort = stoi(get<1>(newLeaderMessage));
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
+            ref->getSyncDir();
+
             break;
+            // clientLoop thread ends here and start again by getSyncDir
+        }
 
         switch (get<0>(message))
         {
