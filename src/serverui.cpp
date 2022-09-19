@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 
     while (!server.isLeader)
     {
-        if (!server.electionStarted)
+        if (!server.electionStarted && !server.isLeader)
         {
             server.backupRole();
         }

@@ -216,9 +216,20 @@ void Server::serverLoop()
     // if this server was a backup, send it IP and port to waiting clients
     for (int i = 0; i < clientIP.size(); i++)
     {
-        cout << "Connecting with waiting client: " << clientPort[i] << "\n";
-        int socketClient = connectClient("", clientIP[i], clientPort[i]);
-        sendProtocol(socketClient, to_string(serverPort), DATA);
+        cout << "Connecting with waiting client: " << clientIP[i] << " : " << clientPort[i] << "\n";
+        int ntry = 4;
+        int socketClient = -1;
+        int sent = 0;
+        while (!sent && ntry > 0 && socketClient <= 0)
+        {
+            socketClient = connectClient("", clientIP[i], clientPort[i]);
+            cout << "Trying to connect with waiting client: " << clientIP[i] << " : " << clientPort[i] << "\n";
+            if (sendProtocol(socketClient, to_string(serverPort), DATA))
+            {
+                sent = 1;
+            }
+            ntry--;
+        }
     }
 
     cout << "Entering ServerLoop\n";
@@ -297,7 +308,7 @@ void *Server::backupRingReceive(void *param)
                 cout << ref->backup << " elected!\n";
                 sendProtocol(ref->nextRingSocket, "elected", DATA);
                 sendProtocol(ref->nextRingSocket, to_string(ref->backup), DATA);
-                std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+                std::this_thread::sleep_for(std::chrono::milliseconds(10000));
                 ref->isLeader = true;
                 ref->electionStarted = 0;
                 cout << "Start serverLoop!\n";
@@ -374,7 +385,7 @@ void Server::backupRole()
             cout << "Primary Broke\n";
             if (backupId.size() == 1)
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+                std::this_thread::sleep_for(std::chrono::milliseconds(10000));
                 isLeader = true;
             }
             else

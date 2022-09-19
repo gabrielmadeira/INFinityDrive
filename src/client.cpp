@@ -161,8 +161,10 @@ void *Client::clientLoop(void *param)
             inet_ntop(AF_INET, &ipAddr, ipNewLeader, INET_ADDRSTRLEN);
 
             ref->srvrAdd = ipNewLeader;
+            cout << "Connection received, waiting for new leader port...\n";
             tProtocol newLeaderMessage = receiveProtocol(newLeaderSocket);
             ref->srvrPort = stoi(get<1>(newLeaderMessage));
+            cout << "Received new leader: " << ref->srvrPort << "\n";
 
             std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
