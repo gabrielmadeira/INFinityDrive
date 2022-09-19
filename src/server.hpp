@@ -62,6 +62,10 @@ public:
     vector<int> backupSocket;
     vector<string> clientIP;
     vector<int> clientPort;
+    int nextRingSocket;
+    int nextRingId;
+    int electionStarted = 0;
+    pthread_t backupRingReceiveID;
 
     socklen_t addr_size;
     Server(int port = 4000, int backupParam = 0)
@@ -89,4 +93,5 @@ public:
 
     void serverLoop();
     void backupRole();
+    static void *backupRingReceive(void *param);
 };

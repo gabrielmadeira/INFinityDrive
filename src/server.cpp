@@ -253,17 +253,100 @@ void Server::serverLoop()
     }
 }
 
+void *Server::backupRingReceive(void *param)
+{
+    Server *ref = (Server *)param;
+
+    cout << "Backup Receive waiting for ring back position\n";
+    int backRingSocket = accept(ref->serverSocket,
+                                (struct sockaddr *)&(ref->serverStorage),
+                                &(ref->addr_size));
+
+    while (1)
+    {
+        cout << "Ring back position connected, waiting message...\n";
+        tProtocol ringMessage = receiveProtocol(backRingSocket);
+        cout << "Received: " << get<1>(ringMessage) << "\n";
+
+        int alreadyParticipant = 1;
+        if (!ref->electionStarted)
+        {
+            alreadyParticipant = 0;
+            ref->electionStarted = 1;
+
+            int index = 0;
+            while (ref->backupId[index] != ref->backup)
+                index++;
+            index++;
+            if (index == ref->backupId.size())
+                index = 0;
+
+            ref->nextRingId = ref->backupId[index];
+            ref->nextRingSocket = connectClient("", ref->backupIP[index], ref->backupPort[index]);
+        }
+        if (get<1>(ringMessage) == "election")
+        {
+            ringMessage = receiveProtocol(backRingSocket);
+            if (stoi(get<1>(ringMessage)) > ref->backup)
+            {
+                sendProtocol(ref->nextRingSocket, "election", DATA);
+                sendProtocol(ref->nextRingSocket, get<1>(ringMessage), DATA);
+            }
+            else if (stoi(get<1>(ringMessage)) == ref->backup)
+            {
+                cout << ref->backup << " elected!\n";
+                sendProtocol(ref->nextRingSocket, "elected", DATA);
+                sendProtocol(ref->nextRingSocket, to_string(ref->backup), DATA);
+                std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+                ref->isLeader = true;
+                ref->electionStarted = 0;
+                cout << "Start serverLoop!\n";
+                break;
+            }
+            else
+            {
+                if (!alreadyParticipant)
+                {
+                    sendProtocol(ref->nextRingSocket, "election", DATA);
+                    sendProtocol(ref->nextRingSocket, to_string(ref->backup), DATA);
+                }
+            }
+        }
+        else
+        {
+            ringMessage = receiveProtocol(backRingSocket);
+            if (stoi(get<1>(ringMessage)) != ref->nextRingId)
+            {
+                sendProtocol(ref->nextRingSocket, "elected", DATA);
+                sendProtocol(ref->nextRingSocket, get<1>(ringMessage), DATA);
+            }
+            ref->backupId.clear();
+            ref->backupPort.clear();
+            ref->backupIP.clear();
+            ref->clientPort.clear();
+            ref->clientIP.clear();
+            ref->electionStarted = 0;
+            cout << "Restart backupRole!\n";
+            break;
+        }
+    }
+}
+
 void Server::backupRole()
 {
 
     // start thread backup ring receive
 
-    int primarySocket;
-    primarySocket = accept(serverSocket,
-                           (struct sockaddr *)&serverStorage,
-                           &addr_size);
+    int primarySocket = accept(serverSocket,
+                               (struct sockaddr *)&serverStorage,
+                               &addr_size);
 
     cout << "Succesfully connected to main server" << endl;
+
+    // start thread backup ring receive
+    if (pthread_create(&backupRingReceiveID, NULL,
+                       backupRingReceive, this) != 0)
+        printf("Failed to create thread\n");
 
     // receive backup list from primary
     tProtocol backupsInfo = receiveProtocol(primarySocket);
@@ -291,11 +374,30 @@ void Server::backupRole()
             cout << "Primary Broke\n";
             if (backupId.size() == 1)
             {
+                std::this_thread::sleep_for(std::chrono::milliseconds(5000));
                 isLeader = true;
             }
             else
             {
-                // start election
+                if (!electionStarted)
+                {
+                    // start election
+                    // backup ring send
+                    electionStarted = 1;
+
+                    int index = 0;
+                    while (backupId[index] != backup)
+                        index++;
+                    index++;
+                    if (index == backupId.size())
+                        index = 0;
+
+                    nextRingId = backupId[index];
+                    cout << "Starting Election\n";
+                    nextRingSocket = connectClient("", backupIP[index], backupPort[index]);
+                    sendProtocol(nextRingSocket, "election", DATA);
+                    sendProtocol(nextRingSocket, to_string(backup), DATA);
+                }
             }
             break;
         }
@@ -323,10 +425,9 @@ void Server::backupRole()
             message = receiveProtocol(primarySocket);
             clientPort.push_back(stoi(get<1>(message)));
             break;
+        // TODO: delete backup
         default:
             cout << "Spooky behavior!" << endl;
         }
     }
-
-    // backup ring send
 }

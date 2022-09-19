@@ -22,13 +22,14 @@ int main(int argc, char *argv[])
     vector<int> backupPort;
     if (argc > 3)
     {
-        nBackupServers = stoi(argv[3]);
+        nBackupServers = stoi(argv[2]);
         for (int i = 0; i < nBackupServers; i++)
         {
             int index = 3 + (i * 3);
             backupId.push_back(stoi(argv[index]));
             backupIP.push_back(argv[index + 1]);
             backupPort.push_back(stoi(argv[index + 2]));
+            cout << "BACKUP WITH PORT: " << argv[index + 2] << "\n";
         }
     }
 
@@ -50,7 +51,10 @@ int main(int argc, char *argv[])
 
     while (!server.isLeader)
     {
-        server.backupRole();
+        if (!server.electionStarted)
+        {
+            server.backupRole();
+        }
     }
     cout << "ServerLoop serveui\n";
     server.serverLoop();
