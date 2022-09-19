@@ -1,9 +1,9 @@
 #include "syncdir.hpp"
-#include <filesystem>
 #include <iostream>
 #include <sys/stat.h>
 #include <string>
 #include <ctime>
+#include <dirent.h>
 
 
 SyncDir::SyncDir(string path) {
@@ -62,17 +62,19 @@ vector<pair<string,int>> SyncDir::sync() {
 vector<File *> SyncDir::getFiles() {
     struct stat info;
     vector<File *> newFiles;
+    DIR *dir;
+    struct dirent *ent;
 
-    if( stat( this->path.c_str(), &info ) != 0 || !(info.st_mode & S_IFDIR))
-        cout << "Error: cannot access sync_dir" << endl;
-    else 
-    {
-        for (const auto & entry : filesystem::directory_iterator(this->path.c_str()))
-        {
-            File * file = new File();
-            file->updateMetadata(entry.path().string());
-            newFiles.push_back(file);
-        }
+    if ((dir = opendir (this->path.c_str())) != NULL) {
+    
+        while ((ent = readdir (dir)) != NULL) {
+               File * file = new File(); 
+               file->updateMetadata(this->path); //é ESSE O PATH CERTO???
+               newFiles.push_back(file);
+    }
+    closedir (dir);
+    } else {
+            cout << "Error: cannot access sync_dir" << endl;
     }
     return newFiles;
 }

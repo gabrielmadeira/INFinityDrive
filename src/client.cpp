@@ -3,13 +3,16 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <iostream>
-#include <filesystem>
 #include <pthread.h>
 #include <chrono>
 #include <thread>
 #include "client.hpp"
 #include "connection.hpp"
 #include "file.hpp"
+
+#include <dirent.h>
+#define Define_CurrentDir getcwd
+
 
 using namespace std;
 
@@ -26,20 +29,27 @@ Client::~Client() { delete (syncdir); }
 
 void Client::getSyncDir()
 {
-    filesystem::path filepath = filesystem::current_path();
-    string fpath = filepath.string() + "/sync_dir";
+    //filesystem::path filepath = filesystem::current_path();
+    string fpath;
     tProtocol sync_tuple;
     File *file;
+    char LOCAL_DIR[1000];
 
-    if (!filesystem::exists(fpath))
-    {
-        if (mkdir(fpath.c_str(), 0777) == -1){
-            cout << "Failed to create sync_dir directory";
-            return;
+    if (!Define_CurrentDir(LOCAL_DIR, sizeof(LOCAL_DIR)))
+             {
+             	return;
+             }
+         
+    else  
+       { 
+            fpath = string(LOCAL_DIR) + "/sync_dir";
+              cout << "Directory" << fpath <<endl;
+            if(mkdir(fpath.c_str(), 0777) == -1)
+                 //throw runtime_error("Failed to create clients directory or directory already exists");
+                cout << "Failed to create clients directory or directory already exists" << endl;
+            else
+                cout << "Directory clients created" << endl;
         }
-        else
-            cout << "Directory sync_dir created" << endl;
-    }
 
     // Try connection
     socketfd = connectClient(name, srvrAdd, srvrPort);
@@ -162,7 +172,16 @@ void Client::deleteFile(string filepath)
 
 void Client::deleteLocal(string filepath)
 {
-    string fullFilepath = filesystem::current_path().string() + "/sync_dir/" + filepath;
+    string fullFilepath;
+    //filesystem::current_path().string() + "/sync_dir/" + filepath;
+    char LOCAL_DIR[1000];
+
+    if (!Define_CurrentDir(LOCAL_DIR, sizeof(LOCAL_DIR)))
+         {
+            	return ;
+         }
+    fullFilepath= string(LOCAL_DIR) + "/sync_dir/" + filepath;
+
     if (filepath.empty())
         cout << "Couldn't understand filename" << endl;
     else if (remove(fullFilepath.c_str()) != 0)
@@ -189,10 +208,20 @@ void Client::getServerList(string message)
 
 void Client::listClient()
 {
-    string fullFilepath = filesystem::current_path().string() + "/sync_dir";
-    SyncDir syncdir = SyncDir(fullFilepath);
-    vector<File *> files = syncdir.getFiles();
+    string fullFilepath;  //= filesystem::current_path().string() + "/sync_dir";
 
+    vector<File *> files = syncdir->getFiles();
+
+    char LOCAL_DIR[1000];
+
+    if (!Define_CurrentDir(LOCAL_DIR, sizeof(LOCAL_DIR)))
+         {
+            	return;
+         }
+    fullFilepath= string(LOCAL_DIR) + "/sync_dir/";
+
+    SyncDir syncdir = SyncDir(fullFilepath);
+    
     cout << "Name\t"
          << "\t\t\tLast Modified\t"
          << "\t\tLast Acessed\t"
