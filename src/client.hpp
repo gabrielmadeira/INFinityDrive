@@ -4,6 +4,11 @@
 #include <limits.h>
 #include "syncdir.hpp"
 
+#include <netinet/in.h>
+#include <netdb.h>
+
+#include <arpa/inet.h>
+
 using namespace std;
 
 static int socketfd;
@@ -19,6 +24,11 @@ private:
     pthread_t syncDirID, clientID;
     int syncDirLoopActive = 0;
     int connected = 0;
+
+    struct sockaddr_in tempClientAddr;
+    struct sockaddr_storage tempClientStorage;
+    socklen_t addr_size;
+    int tempClientSocket;
 
 public:
     string name;

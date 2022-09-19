@@ -273,13 +273,12 @@ void *Server::backupRingReceive(void *param)
                                 (struct sockaddr *)&(ref->serverStorage),
                                 &(ref->addr_size));
 
+    int alreadyParticipant = 0;
     while (1)
     {
         cout << "Ring back position connected, waiting message...\n";
         tProtocol ringMessage = receiveProtocol(backRingSocket);
         cout << "Received: " << get<1>(ringMessage) << "\n";
-
-        int alreadyParticipant = 1;
         if (!ref->electionStarted)
         {
             alreadyParticipant = 0;
@@ -322,6 +321,7 @@ void *Server::backupRingReceive(void *param)
                     sendProtocol(ref->nextRingSocket, to_string(ref->backup), DATA);
                 }
             }
+            alreadyParticipant = 1;
         }
         else
         {

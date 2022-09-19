@@ -23,6 +23,22 @@ Client::Client(string username, int clientPort, string srvrAdd, int srvrPort)
     this->srvrPort = srvrPort;
     this->port = clientPort;
 
+    this->tempClientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    this->tempClientAddr.sin_addr.s_addr = INADDR_ANY;
+    this->tempClientAddr.sin_family = AF_INET;
+    this->tempClientAddr.sin_port = htons(this->port);
+
+    bind(this->tempClientSocket,
+         (struct sockaddr *)&(this->tempClientAddr),
+         sizeof(this->tempClientAddr));
+
+    this->addr_size = sizeof(this->tempClientStorage);
+
+    if (listen(this->tempClientSocket, 50) == 0)
+        printf("Listening\n");
+    else
+        printf("Error\n");
+
     getSyncDir();
 }
 
@@ -131,30 +147,12 @@ void *Client::clientLoop(void *param)
             // wait for new leader and then call getSyncDir
             ref->connected = 0;
 
-            struct sockaddr_in tempClientAddr;
-            struct sockaddr_storage tempClientStorage;
-            socklen_t addr_size;
-            int tempClientSocket = socket(AF_INET, SOCK_STREAM, 0);
-            tempClientAddr.sin_addr.s_addr = INADDR_ANY;
-            tempClientAddr.sin_family = AF_INET;
-            tempClientAddr.sin_port = htons(ref->port);
+            cout << "Waiting for new leader connection\n";
+            int newLeaderSocket = accept(ref->tempClientSocket,
+                                         (struct sockaddr *)&(ref->tempClientStorage),
+                                         &(ref->addr_size));
 
-            bind(tempClientSocket,
-                 (struct sockaddr *)&tempClientAddr,
-                 sizeof(tempClientAddr));
-
-            addr_size = sizeof(tempClientStorage);
-
-            if (listen(tempClientSocket, 50) == 0)
-                printf("Listening: waiting for new leader connection\n");
-            else
-                printf("Error\n");
-
-            int newLeaderSocket = accept(tempClientSocket,
-                                         (struct sockaddr *)&tempClientStorage,
-                                         &addr_size);
-
-            struct sockaddr_in *pV4Addr = (struct sockaddr_in *)&tempClientStorage;
+            struct sockaddr_in *pV4Addr = (struct sockaddr_in *)&(ref->tempClientStorage);
             struct in_addr ipAddr = pV4Addr->sin_addr;
 
             char ipNewLeader[INET_ADDRSTRLEN];
