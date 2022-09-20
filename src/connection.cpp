@@ -78,6 +78,7 @@ void sendFile(string path, int socket)
       }
     }
     send(socket, buffer, 0, 0);
+    fclose(fp);
   }
 }
 

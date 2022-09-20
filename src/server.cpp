@@ -382,6 +382,8 @@ void Server::backupRole()
         backupPort.push_back(stoi(get<1>(backupsInfo)));
     }
 
+    // wiping user connections, preventing errors with old sockets
+    usersHash.clear();
     while (1)
     {
         cout << "Backup Role Loop\n";
