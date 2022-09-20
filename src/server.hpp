@@ -10,10 +10,11 @@
 #include "file.hpp"
 
 using namespace std;
-// mutex mtx;
 
 class User
 {
+private:
+    static mutex mtx;
 public:
     struct userConnectionData
     {

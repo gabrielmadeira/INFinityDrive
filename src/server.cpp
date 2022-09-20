@@ -18,14 +18,17 @@
 
 using namespace std;
 
+mutex User::mtx;
 
 void User::newUserConnection(int socket)
 {
+    mtx.lock();
     userConnectionsHash[socket] = {};
     userConnectionsHash[socket].socket = socket;
     userConnectionsHash[socket].name = data.name;
     userConnectionsHash[socket].ref = this;
     userConnectionsHash[socket].on = 1;
+    mtx.unlock();
 
     if (pthread_create(&(userConnectionsHash[socket].thread), NULL,
                        userConnectionLoop, &(userConnectionsHash[socket])) != 0)
@@ -148,7 +151,9 @@ void *User::userConnectionLoop(void *param)
 
         if (get<0>(message) == ERRO)
         {
+            mtx.lock();
             (*info.ref).userConnectionsHash[info.socket].on = 0;
+            mtx.unlock();
             break;
         }
 
