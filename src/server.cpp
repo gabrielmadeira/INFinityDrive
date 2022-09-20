@@ -14,8 +14,11 @@
 #include <filemanager.hpp>
 #include "server.hpp"
 #include "connection.hpp"
+#include <iostream>
 
 using namespace std;
+
+
 void User::newUserConnection(int socket)
 {
     userConnectionsHash[socket] = {};
@@ -231,6 +234,10 @@ void Server::serverLoop()
             ntry--;
         }
     }
+
+    // If this server was a backup, we need to clear the users to await for their new connections.
+    usersHash.clear();
+
 
     cout << "Entering ServerLoop\n";
 
