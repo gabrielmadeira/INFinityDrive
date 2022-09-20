@@ -4,3 +4,9 @@
 *.o
 /sync_dir
 /clients
+*.jpg
+*.png
+*.jpeg
+*.pdf
+*.mp4
+*.wmv

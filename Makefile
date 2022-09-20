@@ -10,12 +10,17 @@ EXE=.exe
 DEBUGGER=gdb
 FLAGS= -std=c++17 -pthread -I$(DIR_SRC) -I$(DIR_FLE)
 
+USR=zacefron
 SP=4000
 CP=5000
 ADR=127.0.0.1
-# INF=3 1 $(ADR) 4001 2 $(ADR) 4002 3 $(ADR) 4003
-INF=1 1 $(ADR) 4001
-USR=roberto
+ADR1=$(ADR)
+ADR2=$(ADR)
+ADR3=$(ADR)
+
+# INF=3 1 $(ADR1) $(shell echo $$(($(SP)+1))) 2 $(ADR2) $(shell echo $$(($(SP)+2))) 3 $(ADR3) $(shell echo $$(($(SP)+2)))
+INF=2 1 $(ADR1) $(shell echo $$(($(SP)+1))) 2 $(ADR2) $(shell echo $$(($(SP)+2)))
+# INF=1 1 $(ADR1) $(shell echo $$(($(SP)+1)))
 
 init: sc cc
 
@@ -24,14 +29,16 @@ s: sc sr
 c: cc cr
 
 sr:
-	$(DIR_BIN)/server$(EXE) $(SP) $(INF)
+	mkdir -p server && cp $(DIR_BIN)/server$(EXE) $(DIR_ROOT)/server/ && cd $(DIR_ROOT)/server/ && \
+	$(DIR_ROOT)/server/server$(EXE) $(SP) $(INF)
 
 b%: 
-	mkdir -p $@ && cp $(DIR_BIN)/server$(EXE) $(DIR_ROOT)/$@/ && cd $(DIR_ROOT)/$@/ && \
-	$(DIR_ROOT)/$@/server$(EXE) $(shell echo $$(($(SP)+$*))) $*
+	mkdir -p backup$* && cp $(DIR_BIN)/server$(EXE) $(DIR_ROOT)/backup$*/ && cd $(DIR_ROOT)/backup$*/ && \
+	$(DIR_ROOT)/backup$*/server$(EXE) $(shell echo $$(($(SP)+$*))) $*
 
-cr:
-	$(DIR_BIN)/client$(EXE) $(USR) $(CP) $(ADR) $(SP)
+c%:
+	mkdir -p client$* && cp $(DIR_BIN)/client$(EXE) $(DIR_ROOT)/client$*/ && cd $(DIR_ROOT)/client$*/ && \
+	$(DIR_ROOT)/client$*/client$(EXE) $(USR) $(shell echo $$(($(CP)+$*))) $(ADR) $(SP)
 
 dir: 
 	mkdir -p bin
@@ -51,5 +58,9 @@ cc: dir client connection
 sc: dir server connection
 	$(CC) $(FLAGS) -o $(DIR_BIN)/server$(EXE) $(DIR_SRC)/serverui.cpp $(DIR_SRC)/server.cpp $(CPPS)
 	
-clean:
-	rm -rf bin && rm -rf sync_dir && rm -rf clients && rm -rf b* && find . \( -name '*.o' -o -name '*.exe' \) -type f -delete
+reset:
+	rm -rf sync_dir && rm -rf clients && rm -rf backup[0-9]* && rm -rf client[0-9]* && rm -rf server \
+	&& find . \( -name '*.o' \) -type f -delete
+
+clean: reset
+	rm -rf bin && find . \( -name '*.exe' \) -type f -delete

@@ -14,12 +14,14 @@
 int main()
 {
 	int sockfd, newsockfd, n;
+	const int opt = 1;
 	socklen_t clilen;
 	char buffer[256];
 	struct sockaddr_in serv_addr, cli_addr;
 	
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
         printf("ERROR opening socket");
+	setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
 	
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_family = AF_INET;

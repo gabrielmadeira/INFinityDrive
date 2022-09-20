@@ -268,16 +268,16 @@ void *Server::backupRingReceive(void *param)
 {
     Server *ref = (Server *)param;
 
-    cout << "Backup Receive waiting for ring back position\n";
-    int backRingSocket = accept(ref->serverSocket,
+    cout << "backupRingReceive ready\n";
+    int rearRingSocket = accept(ref->serverSocket,
                                 (struct sockaddr *)&(ref->serverStorage),
                                 &(ref->addr_size));
 
     int alreadyParticipant = 0;
     while (1)
     {
-        cout << "Ring back position connected, waiting message...\n";
-        tProtocol ringMessage = receiveProtocol(backRingSocket);
+        cout << "Ring rear connected, waiting for message...\n";
+        tProtocol ringMessage = receiveProtocol(rearRingSocket);
         cout << "Received: " << get<1>(ringMessage) << "\n";
         if (!ref->electionStarted)
         {
@@ -296,7 +296,7 @@ void *Server::backupRingReceive(void *param)
         }
         if (get<1>(ringMessage) == "election")
         {
-            ringMessage = receiveProtocol(backRingSocket);
+            ringMessage = receiveProtocol(rearRingSocket);
             if (stoi(get<1>(ringMessage)) > ref->backup)
             {
                 sendProtocol(ref->nextRingSocket, "election", DATA);
@@ -325,7 +325,7 @@ void *Server::backupRingReceive(void *param)
         }
         else
         {
-            ringMessage = receiveProtocol(backRingSocket);
+            ringMessage = receiveProtocol(rearRingSocket);
             if (stoi(get<1>(ringMessage)) != ref->nextRingId)
             {
                 sendProtocol(ref->nextRingSocket, "elected", DATA);
@@ -341,6 +341,7 @@ void *Server::backupRingReceive(void *param)
             break;
         }
     }
+    return nullptr;
 }
 
 void Server::backupRole()
@@ -387,6 +388,7 @@ void Server::backupRole()
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10000));
                 isLeader = true;
+                pthread_cancel(backupRingReceiveID);
             }
             else
             {

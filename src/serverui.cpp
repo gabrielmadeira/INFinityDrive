@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
             server.backupRole();
         }
     }
-    cout << "ServerLoop serveui\n";
+    cout << "ServerLoop serverui\n";
     server.serverLoop();
     return 0;
 }

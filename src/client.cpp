@@ -18,6 +18,7 @@ using namespace std;
 
 Client::Client(string username, int clientPort, string srvrAdd, int srvrPort)
 {
+	const int opt = 1;
     name = username;
     this->srvrAdd = srvrAdd;
     this->srvrPort = srvrPort;
@@ -27,6 +28,7 @@ Client::Client(string username, int clientPort, string srvrAdd, int srvrPort)
     this->tempClientAddr.sin_addr.s_addr = INADDR_ANY;
     this->tempClientAddr.sin_family = AF_INET;
     this->tempClientAddr.sin_port = htons(this->port);
+	setsockopt(this->tempClientSocket, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
 
     bind(this->tempClientSocket,
          (struct sockaddr *)&(this->tempClientAddr),

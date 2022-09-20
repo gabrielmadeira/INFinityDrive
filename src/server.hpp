@@ -70,6 +70,7 @@ public:
     socklen_t addr_size;
     Server(int port = 4000, int backupParam = 0)
     {
+	    const int opt = 1;
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
         serverAddr.sin_addr.s_addr = INADDR_ANY;
         serverAddr.sin_family = AF_INET;
@@ -78,6 +79,8 @@ public:
         backup = backupParam;
         if (backupParam == 0)
             isLeader = true;
+
+        setsockopt(serverSocket, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
 
         bind(serverSocket,
              (struct sockaddr *)&serverAddr,

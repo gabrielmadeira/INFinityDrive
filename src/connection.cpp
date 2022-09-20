@@ -40,6 +40,7 @@ int connectClient(string name, string srvrAdd, int srvrPort)
   struct sockaddr_in serv_addr;
   struct hostent *server;
   int socketfd, res;
+	const int opt = 1;
 
   server = gethostbyname(srvrAdd.c_str());
   if (!server)
@@ -53,6 +54,8 @@ int connectClient(string name, string srvrAdd, int srvrPort)
   serv_addr.sin_port = htons(srvrPort);
   serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
   bzero(&(serv_addr.sin_zero), 8);
+
+	setsockopt(socketfd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
 
   res = connect(socketfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   if (res == -1)
