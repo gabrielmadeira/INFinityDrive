@@ -10,15 +10,28 @@ EXE=.exe
 DEBUGGER=gdb
 FLAGS= -std=c++17 -pthread -I$(DIR_SRC) -I$(DIR_FLE)
 
-PORT=4000
-ADDR=127.0.0.1
-USERNAME=roberto
+SP=4000
+CP=5000
+ADR=127.0.0.1
+# INF=3 1 $(ADR) 4001 2 $(ADR) 4002 3 $(ADR) 4003
+INF=1 1 $(ADR) 4001
+USR=roberto
 
-s: serverc
-	$(DIR_BIN)/server$(EXE) $(PORT)
+init: sc cc
 
-c: clientc
-	$(DIR_BIN)/client$(EXE) $(USERNAME) $(ADDR) $(PORT)
+s: sc sr
+
+c: cc cr
+
+sr:
+	$(DIR_BIN)/server$(EXE) $(SP) $(INF)
+
+b%: 
+	mkdir -p $@ && cp $(DIR_BIN)/server$(EXE) $(DIR_ROOT)/$@/ && cd $(DIR_ROOT)/$@/ && \
+	$(DIR_ROOT)/$@/server$(EXE) $(shell echo $$(($(SP)+$*))) $*
+
+cr:
+	$(DIR_BIN)/client$(EXE) $(USR) $(CP) $(ADR) $(SP)
 
 dir: 
 	mkdir -p bin
@@ -32,11 +45,11 @@ client:
 connection: 
 	$(CC) -c $(DIR_SRC)/connection.cpp $(DIR_FLE)/file.cpp $(FLAGS)
 
-clientc: dir client connection
+cc: dir client connection
 	$(CC) $(FLAGS) -o $(DIR_BIN)/client$(EXE) $(DIR_SRC)/clientui.cpp $(DIR_SRC)/client.cpp $(CPPS)
 
-serverc: dir server connection
+sc: dir server connection
 	$(CC) $(FLAGS) -o $(DIR_BIN)/server$(EXE) $(DIR_SRC)/serverui.cpp $(DIR_SRC)/server.cpp $(CPPS)
 	
 clean:
-	rm -rf bin && find . \( -name '*.o' -o -name '*.exe' \) -type f -delete
+	rm -rf bin && rm -rf sync_dir && rm -rf clients && rm -rf b* && find . \( -name '*.o' -o -name '*.exe' \) -type f -delete
