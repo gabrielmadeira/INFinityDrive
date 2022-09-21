@@ -66,6 +66,7 @@ int connectClient(string name, string srvrAdd, int srvrPort)
 
 void sendFile(string path, int socket)
 {
+  cout << "file: " << path << endl;
   if (FILE *fp = fopen(path.c_str(), "rb"))
   {
     size_t readBytes;
@@ -85,10 +86,6 @@ void sendFile(string path, int socket)
 void receiveFile(string path, int socket, int size)
 {
   int BUFFER_SIZE = 256;
-
-  int chunk = 0;
-  int msgsize = size + (BUFFER_SIZE - size % BUFFER_SIZE);
-  int total_chunks = msgsize / BUFFER_SIZE;
 
   int totalReadyBytes = 0;
   if (FILE *fp = fopen(path.c_str(), "wb"))
@@ -111,6 +108,54 @@ void receiveFile(string path, int socket, int size)
   }
 }
 
+bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
+{
+  string bufmsg;
+  const char *buffer;
+  message = message + "|" + to_string(type); cout << "+|" << message << endl;
+  bufmsg = message.substr(0, PAYLOAD_SIZE); cout << "bufmsg " << bufmsg << endl;
+  message = message.erase(0, PAYLOAD_SIZE); cout << "message " << bufmsg << endl;
+  while (bufmsg.size())
+  {
+    buffer = bufmsg.c_str(); cout << "buffer: "<<  buffer << endl;
+    if (send(socketfd, buffer, bufmsg.size(), 0) != bufmsg.size())
+      return false;
+    bufmsg = message.substr(0, PAYLOAD_SIZE);
+    message = message.erase(0, PAYLOAD_SIZE);
+  }
+  send(socketfd, buffer, 0, 0);
+  return true;
+}
+
+tProtocol
+receiveProtocol(int socketfd)
+{
+  string message;
+  int totalReadyBytes = 0, size = 0;
+  size_t readBytes;
+  char buffer[PAYLOAD_SIZE];
+  while ((readBytes = recv(socketfd, buffer, sizeof(buffer), 0)) > 0)
+  {
+    totalReadyBytes += readBytes;
+    message += buffer;
+    cout << "totalread: "<< totalReadyBytes << endl;
+    cout << "message: "<< message << endl;
+    if(!size)
+    {
+      cout << "message: "<< message << endl;
+      size = stoi(message.substr(0, message.find("|")));
+      message.erase(0, message.find("|") + 1);
+      totalReadyBytes = message.size();
+    }
+    if (totalReadyBytes >= size)
+      break;
+  }
+  if ((readBytes < 0) || ((totalReadyBytes < size) && !readBytes))
+    return make_tuple(ERRO, "");
+  PROTOCOL_TYPE type = static_cast<PROTOCOL_TYPE>(message[message.size()-1] - '0');
+  return make_tuple(type, message.substr(0, message.size()-2));
+}
+
 bool upload(int socketfd, File *file, string path, int forcePropagation)
 {
   PROTOCOL_TYPE protocol = forcePropagation ? UPLF : UPLD;
@@ -128,58 +173,6 @@ void writeFile(string data, int socket, string path)
 
   path += file->name;
   receiveFile(path, socket, file->size);
-}
-
-bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
-{
-  Protocol buffer;
-  int msgsize = message.size() + (PAYLOAD_SIZE - message.size() % PAYLOAD_SIZE);
-  message.resize(msgsize, '\0');
-  buffer.total_chunks = msgsize / PAYLOAD_SIZE;
-  const char *bufmsg = message.c_str();
-  cout << "message send: " << message << endl;
-  for (int i = 0; i < buffer.total_chunks; i++)
-  {
-    buffer.type = type;
-    buffer.chunk = i + 1;
-    strncpy(buffer.payload, &bufmsg[i * PAYLOAD_SIZE], PAYLOAD_SIZE);
-    if (send(socketfd, &buffer, BUFFER_SIZE, 0) == -1)
-      return false;
-  }
-  return true;
-}
-
-tProtocol
-receiveProtocol(int socketfd)
-{
-  Protocol buffer;
-  string message;
-  int nBytes;
-  do
-  {
-    nBytes = recv(socketfd, &buffer, BUFFER_SIZE, 0);
-    cout << "bytes read: " << nBytes << endl;
-    if (nBytes < 0)
-    {
-      printf("%d ERROR reading from socket\n", socketfd);
-      break;
-      ;
-    }
-    if (nBytes == 0)
-    {
-      printf("%d Disconnected\n", socketfd);
-      break;
-    }
-
-    message += buffer.payload;
-  } while (buffer.chunk < buffer.total_chunks);
-  cout << "message: " << message << endl;
-  if (nBytes <= 0)
-  {
-    // Error or disconnected
-    return make_tuple(ERRO, "");
-  }
-  return make_tuple(buffer.type, message);
 }
 
 vector<File *> deserializePack(string message)
