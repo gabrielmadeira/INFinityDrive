@@ -368,8 +368,8 @@ void Server::backupRole()
     cout << "Succesfully connected to main server" << endl;
 
     // start thread backup ring receive
-    if (pthread_create(&backupRingReceiveID, NULL,
-                       backupRingReceive, this) != 0)
+    // if (pthread_create(&backupRingReceiveID, NULL,
+    //                    backupRingReceive, this) != 0)
         printf("Failed to create thread\n");
 
     // receive backup list from primary
@@ -379,12 +379,15 @@ void Server::backupRole()
     {
         backupsInfo = receiveProtocol(primarySocket);
         backupId.push_back(stoi(get<1>(backupsInfo)));
+        cout << "Id: " << get<1>(backupsInfo) << endl;
 
         backupsInfo = receiveProtocol(primarySocket);
         backupIP.push_back(get<1>(backupsInfo));
+        cout << "IP: " << get<1>(backupsInfo) << endl;
 
         backupsInfo = receiveProtocol(primarySocket);
         backupPort.push_back(stoi(get<1>(backupsInfo)));
+        cout << "PORT: " << get<1>(backupsInfo) << endl;
     }
 
     // wiping user connections, preventing errors with old sockets
@@ -393,6 +396,8 @@ void Server::backupRole()
     {
         cout << "Backup Role Loop\n";
         tProtocol user = receiveProtocol(primarySocket);
+        cout << "user: " << get<1>(user) << endl;
+        cout << "type: " << get<0>(user) << endl;
 
         if (get<0>(user) == ERRO)
         {

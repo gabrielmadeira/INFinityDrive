@@ -137,6 +137,7 @@ bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
   message.resize(msgsize, '\0');
   buffer.total_chunks = msgsize / PAYLOAD_SIZE;
   const char *bufmsg = message.c_str();
+  cout << "message send: " << message << endl;
   for (int i = 0; i < buffer.total_chunks; i++)
   {
     buffer.type = type;
@@ -157,6 +158,7 @@ receiveProtocol(int socketfd)
   do
   {
     nBytes = recv(socketfd, &buffer, BUFFER_SIZE, 0);
+    cout << "bytes read: " << nBytes << endl;
     if (nBytes < 0)
     {
       printf("%d ERROR reading from socket\n", socketfd);
@@ -171,6 +173,7 @@ receiveProtocol(int socketfd)
 
     message += buffer.payload;
   } while (buffer.chunk < buffer.total_chunks);
+  cout << "message: " << message << endl;
   if (nBytes <= 0)
   {
     // Error or disconnected
