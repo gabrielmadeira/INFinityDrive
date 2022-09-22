@@ -110,46 +110,58 @@ void receiveFile(string path, int socket, int size)
 
 bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
 {
-  string bufmsg;
-  const char *buffer;
-  message = message + "|" + to_string(type); cout << "+|" << message << endl;
-  bufmsg = message.substr(0, PAYLOAD_SIZE); cout << "bufmsg " << bufmsg << endl;
-  message = message.erase(0, PAYLOAD_SIZE); cout << "message " << bufmsg << endl;
-  while (bufmsg.size())
-  {
-    buffer = bufmsg.c_str(); cout << "buffer: "<<  buffer << endl;
-    if (send(socketfd, buffer, bufmsg.size(), 0) != bufmsg.size())
-      return false;
-    bufmsg = message.substr(0, PAYLOAD_SIZE);
-    message = message.erase(0, PAYLOAD_SIZE);
-  }
-  send(socketfd, buffer, 0, 0);
+
+  cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<endl;
+  cout << "message = " << message << endl;
+  char buffer[256];
+  size_t tamanho = message.size() + 2 + 5;//tamnho do type na ultima
+  
+  strcat(buffer,to_string(tamanho).c_str());
+
+  cout<<"De onde vem o parenteses?" <<buffer << endl;//verificar to_string adicionando parenteses
+
+  strcat(buffer,"|");
+  strcat(buffer, message.c_str());
+  strcat(buffer,"|");
+  strcat(buffer,"type");//type em formato string
+
+  cout << "message pós parser = " << buffer << endl;
+
+  tamanho = strlen(buffer);
+  cout<< "tamanho "<<tamanho << endl;
+  send(socketfd, buffer, tamanho, 0);
+
+  memset(buffer, 0, 256);//limpa o buffer para os proximos envios
+
   return true;
 }
 
 tProtocol
 receiveProtocol(int socketfd)
 {
-  string message;
+  string m, message;
   int totalReadyBytes = 0, size = 0;
   size_t readBytes;
   char buffer[PAYLOAD_SIZE];
   while ((readBytes = recv(socketfd, buffer, sizeof(buffer), 0)) > 0)
   {
     totalReadyBytes += readBytes;
-    message += buffer;
+    m += buffer;
+    message+= m.substr(0,readBytes);
     cout << "totalread: "<< totalReadyBytes << endl;
+    cout << "lido do buffer: "<< m << endl;
     cout << "message: "<< message << endl;
+
     if(!size)
     {
-      cout << "message: "<< message << endl;
-      size = stoi(message.substr(0, message.find("|")));
-      message.erase(0, message.find("|") + 1);
-      totalReadyBytes = message.size();
+      size = stoi(message.substr(0,2));//primeiro termo recebido no send
+      cout<< size << endl;
     }
+    
     if (totalReadyBytes >= size)
       break;
   }
+
   if ((readBytes < 0) || ((totalReadyBytes < size) && !readBytes))
     return make_tuple(ERRO, "");
   PROTOCOL_TYPE type = static_cast<PROTOCOL_TYPE>(message[message.size()-1] - '0');

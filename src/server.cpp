@@ -212,10 +212,11 @@ void Server::serverLoop()
         backupSocket.push_back(socket);
 
         // send backups info
-        sendProtocol(socket, to_string(backupId.size()), DATA);
+        sendProtocol(socket, to_string(backupId.size()), DATA);//to string colocando "(" no inicio;
         for (int j = 0; j < backupId.size(); j++)
         {
             sendProtocol(socket, to_string(backupId[j]), DATA);
+            cout<< "backupID : "<< backupId[j]<< endl;
             sendProtocol(socket, backupIP[j], DATA);
             sendProtocol(socket, to_string(backupPort[j]), DATA);
         }
