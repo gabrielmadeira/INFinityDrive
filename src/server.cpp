@@ -140,9 +140,6 @@ void *User::userConnectionLoop(void *param)
     // TODO: destruir UserConnection ao desconectar ou ocorrer erro
 
     userConnectionData info = *(userConnectionData *)param;
-
-    protocol buffer;
-    int n;
     createClientDirectory(info.name);
 
     while (1)
@@ -212,11 +209,10 @@ void Server::serverLoop()
         backupSocket.push_back(socket);
 
         // send backups info
-        sendProtocol(socket, to_string(backupId.size()), DATA);//to string colocando "(" no inicio;
+        sendProtocol(socket, to_string(backupId.size()), DATA);
         for (int j = 0; j < backupId.size(); j++)
         {
             sendProtocol(socket, to_string(backupId[j]), DATA);
-            cout<< "backupID : "<< backupId[j]<< endl;
             sendProtocol(socket, backupIP[j], DATA);
             sendProtocol(socket, to_string(backupPort[j]), DATA);
         }
@@ -287,11 +283,10 @@ void *Server::backupRingReceive(void *param)
                                 &(ref->addr_size));
 
     int alreadyParticipant = 0;
+    cout << "Ring connection established, awaiting message...\n";
     while (1)
     {
-        cout << "Ring rear connected, waiting for message...\n";
         tProtocol ringMessage = receiveProtocol(rearRingSocket);
-        cout << "Received: " << get<1>(ringMessage) << "\n";
         if (!ref->electionStarted)
         {
             alreadyParticipant = 0;
@@ -324,6 +319,7 @@ void *Server::backupRingReceive(void *param)
                 ref->isLeader = true;
                 ref->electionStarted = 0;
                 cout << "Start serverLoop!\n";
+                close(rearRingSocket);
                 break;
             }
             else
@@ -351,6 +347,7 @@ void *Server::backupRingReceive(void *param)
             ref->clientIP.clear();
             ref->electionStarted = 0;
             cout << "Restart backupRole!\n";
+            close(rearRingSocket);
             break;
         }
     }
@@ -369,8 +366,8 @@ void Server::backupRole()
     cout << "Succesfully connected to main server" << endl;
 
     // start thread backup ring receive
-    // if (pthread_create(&backupRingReceiveID, NULL,
-    //                    backupRingReceive, this) != 0)
+    if (pthread_create(&backupRingReceiveID, NULL,
+                       backupRingReceive, this) != 0)
         printf("Failed to create thread\n");
 
     // receive backup list from primary
@@ -380,30 +377,26 @@ void Server::backupRole()
     {
         backupsInfo = receiveProtocol(primarySocket);
         backupId.push_back(stoi(get<1>(backupsInfo)));
-        cout << "Id: " << get<1>(backupsInfo) << endl;
 
         backupsInfo = receiveProtocol(primarySocket);
         backupIP.push_back(get<1>(backupsInfo));
-        cout << "IP: " << get<1>(backupsInfo) << endl;
 
         backupsInfo = receiveProtocol(primarySocket);
         backupPort.push_back(stoi(get<1>(backupsInfo)));
-        cout << "PORT: " << get<1>(backupsInfo) << endl;
     }
 
     // wiping user connections, preventing errors with old sockets
     usersHash.clear();
     while (1)
     {
-        cout << "Backup Role Loop\n";
+        cout << "Entering BackupLoop\n";
         tProtocol user = receiveProtocol(primarySocket);
-        cout << "user: " << get<1>(user) << endl;
-        cout << "type: " << get<0>(user) << endl;
 
         if (get<0>(user) == ERRO)
         {
             // PRIMARY BROKE
             cout << "Primary Broke\n";
+            close(primarySocket);
             if (backupId.size() == 1)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10000));
@@ -440,17 +433,13 @@ void Server::backupRole()
             createClientDirectory(get<1>(user));
         }
 
-        cout << "Backup: command received from user " << get<1>(user) << ": ";
         tProtocol message = receiveProtocol(primarySocket);
-
         switch (get<0>(message))
         {
         case UPLD:
-            cout << "Upload\n";
             usersHash[get<1>(user)].upload(get<1>(message), usersHash[get<1>(user)].data);
             break;
         case DELT:
-            cout << "Delete\n";
             usersHash[get<1>(user)].del(get<1>(message), usersHash[get<1>(user)].data);
             break;
         case CLT: // new client

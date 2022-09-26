@@ -3,31 +3,9 @@
 #include <tuple>
 #include "file.hpp"
 
-// Protocol related methods and definitions
-#define PAYLOAD_SIZE 256
-
-enum PROTOCOL_TYPE : short
-{
-    DATA,
-    UPLD,
-    UPLF,
-    DWNL,
-    DELT,
-    LSSV,
-    LSCL,
-    GSDR,
-    LOGN,
-    CLT,
-    ERRO
-};
-static int BUFFER_SIZE = PAYLOAD_SIZE + sizeof(PROTOCOL_TYPE) + 2 * sizeof(uint16_t);
-typedef struct protocol
-{
-    char payload[PAYLOAD_SIZE]; // 1 byte * 256
-    PROTOCOL_TYPE type;         // 2 bytes
-    uint16_t total_chunks;      // 2 bytes
-    uint16_t chunk;             // 2 bytes
-} Protocol;
+enum PROTOCOL_TYPE : short { DATA, UPLD, UPLF, DWNL, DELT, LSSV, LSCL, GSDR, LOGN, CLT, ERRO };
+static const char* PROTOCOL_NAME[] = { "DATA", "UPLD", "UPLF", "DWNL", "DELT", "LSSV", "LSCL", "GSDR", "LOGN", "CLT", "ERRO" };
+inline static int PAYLOAD_SIZE = 256;
 
 using tProtocol = tuple<PROTOCOL_TYPE, string>;
 

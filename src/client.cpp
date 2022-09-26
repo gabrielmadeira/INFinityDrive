@@ -137,8 +137,6 @@ void *Client::syncDirLoop(void *param)
 void *Client::clientLoop(void *param)
 {
     Client *ref = (Client *)param;
-    protocol buffer;
-    int n;
     while (1)
     {
         tProtocol message = receiveProtocol(socketfd);

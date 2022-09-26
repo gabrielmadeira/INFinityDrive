@@ -66,18 +66,15 @@ int connectClient(string name, string srvrAdd, int srvrPort)
 
 void sendFile(string path, int socket)
 {
-  cout << "file: " << path << endl;
-  if (FILE *fp = fopen(path.c_str(), "rb"))
+  cout << "File sent : " << path << endl;
+  if(FILE *fp = fopen(path.c_str(), "rb"))
   {
     size_t readBytes;
-    char buffer[256];
-    while ((readBytes = fread(buffer, 1, sizeof(buffer), fp)) > 0)
-    {
-      if (send(socket, buffer, readBytes, 0) != readBytes)
-      {
-        return;
-      }
-    }
+    char buffer[PAYLOAD_SIZE];
+
+    while((readBytes = fread(buffer, 1, sizeof(buffer), fp)) > 0)
+      if(send(socket, buffer, readBytes, 0) != readBytes) return;
+
     send(socket, buffer, 0, 0);
     fclose(fp);
   }
@@ -85,90 +82,69 @@ void sendFile(string path, int socket)
 
 void receiveFile(string path, int socket, int size)
 {
-  int BUFFER_SIZE = 256;
-
   int totalReadyBytes = 0;
+
   if (FILE *fp = fopen(path.c_str(), "wb"))
   {
     size_t readBytes;
-    char buffer[BUFFER_SIZE];
+    char buffer[PAYLOAD_SIZE];
     while ((readBytes = recv(socket, buffer, sizeof(buffer), 0)) > 0)
     {
-      if (fwrite(buffer, 1, readBytes, fp) != readBytes)
-      {
-        return;
-      }
+      if (fwrite(buffer, 1, readBytes, fp) != readBytes) return;
       totalReadyBytes += readBytes;
-      if (totalReadyBytes >= size)
-      {
-        break;
-      }
+      if (totalReadyBytes >= size) break;
     }
     fclose(fp);
   }
+  cout << "File received : " << path << endl;
 }
 
 bool sendProtocol(int socketfd, string message, PROTOCOL_TYPE type)
 {
-  
-  cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<endl;
-  cout << "message = " << message << endl;
-  char buffer[256];
-  memset(buffer, 0, 256);
-  
-  size_t tamanho = message.size() + 2 + 5;//tamanho do type na ultima
-  
-  
-  strcat(buffer,to_string(tamanho).c_str());
-  strcat(buffer,"|");
-  strcat(buffer, message.c_str());
-  strcat(buffer,"|");
-  strcat(buffer,"type");//type em formato string
+  char buffer[PAYLOAD_SIZE];
+  memset(buffer, 0, PAYLOAD_SIZE);
 
-  cout << "message pós parser = " << buffer << endl;
+  string stype = to_string(type);  
+  size_t tamanho = message.size() + stype.size() + 2;
+  string remainder = to_string(tamanho) + '|' + message + '|' + stype;
 
+  strcat(buffer, (remainder).c_str());
   tamanho = strlen(buffer);
-  cout<< "tamanho "<<tamanho << endl;
+
+  cout << "Message sent : " << PROTOCOL_NAME[type] << " : " << remainder << endl;
   send(socketfd, buffer, tamanho, 0);
-
-  memset(buffer, 0, 256);//limpa o buffer para os proximos envios
-
   return true;
 }
 
 tProtocol
 receiveProtocol(int socketfd)
 {
-  string m, message;
-  int totalReadyBytes = 0, size = 0;
-  size_t readBytes;
-  char buffer[PAYLOAD_SIZE];
-  while ((readBytes = recv(socketfd, buffer, sizeof(buffer), 0)) > 0)
-  {
-    totalReadyBytes += readBytes;
-    m += buffer;
-    message+= m.substr(1,readBytes);
-    cout << "totalread: "<< totalReadyBytes << endl;
-    cout << "lido do buffer: "<< m << endl;
-    cout << "message: "<< message << endl;
+  string message, msgsize, remainder; 
+  size_t readBytes, lastDel, correctsize;
+  char buf1[1], *buf2;
 
-    if(!size)
-    {
-       size = stoi(message.substr(1,2));//primeiro termo recebido no send
-       cout<< size << endl;
-    }
-    
-    if (totalReadyBytes >= size)
-          break;
-      
+  while ((readBytes = recv(socketfd, buf1, 1, 0)) > 0)
+  {
+    if(buf1[0] != '|') msgsize += buf1;
+    else break;
   }
 
-  memset(buffer, 0, 256);//limpa o buffer para os proximos envios
+  if(msgsize.size())
+  {
+    correctsize = stoi(msgsize) - 1;
+    buf2 = (char*)calloc(correctsize, sizeof(char));
+    if((readBytes = recv(socketfd, buf2, correctsize, 0)) > 0)
+      message = buf2;
+  }
 
-  if ((readBytes < 0) || ((totalReadyBytes < size) && !readBytes))
+  if (!msgsize.size() || (readBytes <= 0) || (readBytes != correctsize))
     return make_tuple(ERRO, "");
-  PROTOCOL_TYPE type = static_cast<PROTOCOL_TYPE>(message[message.size()-1] - '0');
-  return make_tuple(type, message.substr(0, message.size()-2));
+
+  lastDel = message.find_last_of('|');
+  PROTOCOL_TYPE type = static_cast<PROTOCOL_TYPE>(stoi(message.substr(lastDel+1)));
+  remainder = message.substr(0, lastDel);
+  cout << "Message received : " << PROTOCOL_NAME[type] << " : " << remainder << endl;
+  return make_tuple(type, remainder);
 }
 
 bool upload(int socketfd, File *file, string path, int forcePropagation)

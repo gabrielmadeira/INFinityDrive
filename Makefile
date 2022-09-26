@@ -15,12 +15,16 @@ SP=4000
 CP=5000
 ADR=127.0.0.1
 ADR1=$(ADR)
-ADR2=$(ADR)
-ADR3=$(ADR)
+ADR2=$(ADR1)
+ADR3=$(ADR2)
+ADR4=$(ADR3)
+ADR5=$(ADR4)
 
-# INF=3 1 $(ADR1) $(shell echo $$(($(SP)+1))) 2 $(ADR2) $(shell echo $$(($(SP)+2))) 3 $(ADR3) $(shell echo $$(($(SP)+2)))
-INF=2 1 $(ADR1) $(shell echo $$(($(SP)+1))) 2 $(ADR2) $(shell echo $$(($(SP)+2)))
-# INF=1 1 $(ADR1) $(shell echo $$(($(SP)+1)))
+INF1=1 $(ADR1) $(shell echo $$(($(SP)+1)))
+INF2=$(INF1) 2 $(ADR2) $(shell echo $$(($(SP)+2)))
+INF3=$(INF2) 3 $(ADR3) $(shell echo $$(($(SP)+3)))
+INF4=$(INF3) 4 $(ADR4) $(shell echo $$(($(SP)+4)))
+INF5=$(INF4) 5 $(ADR5) $(shell echo $$(($(SP)+5)))
 
 init: sc cc
 
@@ -28,9 +32,9 @@ s: sc sr
 
 c: cc cr
 
-sr:
+s%:
 	mkdir -p server && cp $(DIR_BIN)/server$(EXE) $(DIR_ROOT)/server/ && cd $(DIR_ROOT)/server/ && \
-	$(DIR_ROOT)/server/server$(EXE) $(SP) $(INF)
+	$(DIR_ROOT)/server/server$(EXE) $(SP) $* $(INF$*)
 
 b%: 
 	mkdir -p backup$* && cp $(DIR_BIN)/server$(EXE) $(DIR_ROOT)/backup$*/ && cd $(DIR_ROOT)/backup$*/ && \
